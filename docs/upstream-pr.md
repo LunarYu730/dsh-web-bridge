@@ -1,12 +1,13 @@
 # 上游 PR 记录
 
-- 上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>
-- PR：**[#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)** — `feat: 网页对话输入框支持粘贴与拖放附件`
-- 提交来源：`hexiangyu0730-web:pr-attach`（fork `hexiangyu0730-web/dsh-web-bridge-fork`）
-- 基线：`b5531f2`（上游 v0.4.5）
-- 改动：1 个提交、1 个文件（`lib/client.js`）、`+68 −1`
+| PR | 标题 | 状态 | 改动 |
+| --- | --- | --- | --- |
+| [#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1) | feat: 网页对话输入框支持粘贴与拖放附件 | **已合并**（上游 0.4.6 已包含） | 1 文件 `lib/client.js`，`+68 −1` |
+| [#2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2) | feat: 记住思考/联网开关、侧栏入口挪进面板列表、会话列表可收起 | 开放中，CI 通过，`mergeable_state=clean` | 3 文件，`+263 −16` |
 
-## PR 正文（原文）
+两条 PR 都来自 fork `hexiangyu0730-web/dsh-web-bridge-fork`：`#1` 基于上游 `b5531f2`（0.4.5），`#2` 基于 `951cf02`（0.4.6）。
+
+## PR #1 正文（原文）
 
 ## 背景
 
@@ -39,8 +40,17 @@
 - 本补丁为原创改动，按项目 PolyForm Noncommercial 1.0.0 提交，未引入第三方代码。
 - 如果只想收「粘贴」而不想要拖放，或者想拆成两个 PR，我可以随时调整。
 
-## 状态
+## PR #1 状态
 
-- 已创建，处于 open。
-- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
-- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
+- **已合并**（`e47b3b0 Merge pull request #1`），之后作者补了 `2e52bb7 Fix attachment availability checks for paste and drop` 并发布 0.4.6。
+- 合并后 GitHub 曾显示 `action_required`（首次贡献需要维护者批准），与构建无关。
+
+## PR #2
+
+- 链接：<https://github.com/SaiSenBox/dsh-web-bridge/pull/2>
+- 基线：`951cf02`（上游 0.4.6）
+- 内容：三项界面改进——思考/联网开关默认开启并持久化（新增 `GET/PUT /deepseek-web/preferences`）、侧栏入口从 `sidebar.footer.action` 移到 `sidebar.panellist`、会话页左栏可收起。
+- 改动：3 个文件、`+263 −16`，保留上游 0.4.6 的粘贴/拖放修复，不改版本号、不带 fork 文档。
+- 状态：开放中，CI 通过，`mergeable_state=clean`。
+- 分支：`hexiangyu0730-web:pr-qol`（网络限制导致本机 `git push` 不通时，分支与提交通过 GitHub API 创建，tree 哈希已校验一致）。
+

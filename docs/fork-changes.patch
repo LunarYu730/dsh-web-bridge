@@ -37,10 +37,10 @@ index 1db8f31..2cc2fac 100644
  
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..3e0353f
+index 0000000..cd316e9
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,104 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
@@ -118,7 +118,10 @@ index 0000000..3e0353f
 +## 发布状态
 +
 +- 已发布：<https://github.com/hexiangyu0730-web/dsh-web-bridge>（public，默认分支 `main`，`origin`）
-+- 已提交上游：**[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**，来自 fork `hexiangyu0730-web/dsh-web-bridge-fork` 的 `pr-attach` 分支，只含 `lib/client.js` 两处改动（`+68 −1`），正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)
++- 已提交上游：
++  - **[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**（粘贴/拖放，`+68 −1`）— **已合并**，上游 0.4.6 已包含；
++  - **[PR #2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2)**（开关记忆、侧栏入口、列表收起，3 文件 `+263 −16`）— 开放中，CI 通过；
++  - 两者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
 +- `upstream` 保留指向原作者仓库，用于取上游基线
 +- CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
 +- 许可证与署名：保留上游 `LICENSE`（PolyForm Noncommercial 1.0.0）与 Required Notice，`package.json` 的 `author` 仍是 SaiSenBox
@@ -215,19 +218,20 @@ index 57d4c9e..f470ed4 100644
  装好或更新后，**完全退出 DSH，包括托盘进程，再重新打开**。只刷新页面不会更新 Host 接口。
 diff --git a/docs/upstream-pr.md b/docs/upstream-pr.md
 new file mode 100644
-index 0000000..a92334a
+index 0000000..be48c34
 --- /dev/null
 +++ b/docs/upstream-pr.md
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,56 @@
 +# 上游 PR 记录
 +
-+- 上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>
-+- PR：**[#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)** — `feat: 网页对话输入框支持粘贴与拖放附件`
-+- 提交来源：`hexiangyu0730-web:pr-attach`（fork `hexiangyu0730-web/dsh-web-bridge-fork`）
-+- 基线：`b5531f2`（上游 v0.4.5）
-+- 改动：1 个提交、1 个文件（`lib/client.js`）、`+68 −1`
++| PR | 标题 | 状态 | 改动 |
++| --- | --- | --- | --- |
++| [#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1) | feat: 网页对话输入框支持粘贴与拖放附件 | **已合并**（上游 0.4.6 已包含） | 1 文件 `lib/client.js`，`+68 −1` |
++| [#2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2) | feat: 记住思考/联网开关、侧栏入口挪进面板列表、会话列表可收起 | 开放中，CI 通过，`mergeable_state=clean` | 3 文件，`+263 −16` |
 +
-+## PR 正文（原文）
++两条 PR 都来自 fork `hexiangyu0730-web/dsh-web-bridge-fork`：`#1` 基于上游 `b5531f2`（0.4.5），`#2` 基于 `951cf02`（0.4.6）。
++
++## PR #1 正文（原文）
 +
 +## 背景
 +
@@ -260,11 +264,20 @@ index 0000000..a92334a
 +- 本补丁为原创改动，按项目 PolyForm Noncommercial 1.0.0 提交，未引入第三方代码。
 +- 如果只想收「粘贴」而不想要拖放，或者想拆成两个 PR，我可以随时调整。
 +
-+## 状态
++## PR #1 状态
 +
-+- 已创建，处于 open。
-+- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
-+- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
++- **已合并**（`e47b3b0 Merge pull request #1`），之后作者补了 `2e52bb7 Fix attachment availability checks for paste and drop` 并发布 0.4.6。
++- 合并后 GitHub 曾显示 `action_required`（首次贡献需要维护者批准），与构建无关。
++
++## PR #2
++
++- 链接：<https://github.com/SaiSenBox/dsh-web-bridge/pull/2>
++- 基线：`951cf02`（上游 0.4.6）
++- 内容：三项界面改进——思考/联网开关默认开启并持久化（新增 `GET/PUT /deepseek-web/preferences`）、侧栏入口从 `sidebar.footer.action` 移到 `sidebar.panellist`、会话页左栏可收起。
++- 改动：3 个文件、`+263 −16`，保留上游 0.4.6 的粘贴/拖放修复，不改版本号、不带 fork 文档。
++- 状态：开放中，CI 通过，`mergeable_state=clean`。
++- 分支：`hexiangyu0730-web:pr-qol`（网络限制导致本机 `git push` 不通时，分支与提交通过 GitHub API 创建，tree 哈希已校验一致）。
++
 diff --git a/lib/client.js b/lib/client.js
 index 283ab2b..4d59915 100644
 --- a/lib/client.js
