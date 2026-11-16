@@ -1,10 +1,14 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index a63d5f2..59ba6f7 100644
+index a63d5f2..46c40f3 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -1,5 +1,22 @@
+@@ -1,5 +1,26 @@
  # 更新记录
  
++## 0.4.5-fork.4
++
++- 网页端会话页左侧的会话列表可以收起：标题栏新增一个折叠按钮，收起后预览/导入区域占满整个宽度；状态记在 `localStorage` 并同步到 `GET/PUT /deepseek-web/preferences`（`listCollapsed`），重启 DSH 后保持。
++
 +## 0.4.5-fork.3
 +
 +- 侧栏入口从「工作区下方的页脚」移到 DSH 的侧栏面板列表（与「插件」「插件市场」同一组）：点击直接在主区域打开网页对话列表，展开的清单不再挤压或遮挡下方的工作区会话；搜索、新建、重命名、删除、拖到工作区行导入仍在主面板里可用。
@@ -27,10 +31,10 @@ index a63d5f2..59ba6f7 100644
  - npm 包名为 `@xueray/dsh-web-bridge`，界面名称为「DeepSeek 会话桥」；原配置行 ID、HTTP 路由和浏览器偏好键保持兼容。
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..8918647
+index 0000000..a8d9bda
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,98 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
@@ -49,6 +53,7 @@ index 0000000..8918647
 +3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
 +4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
 +5. **侧栏入口位置**：槽位从 `sidebar.footer.action` 改为 `sidebar.panellist`（id `deepseek-web`），与「插件」「插件市场」同组；点击在主区域打开 `deepseek-web` 面板，不再在侧栏内联展开、不再压住工作区会话。
++6. **会话页左栏可收起**：网页端会话页标题栏加了折叠按钮，收起后预览/导入区域占满宽度；状态写 `localStorage`（`dsh-deepseek-web.library-list`）并同步到 `/deepseek-web/preferences` 的 `listCollapsed`。
 +
 +两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 +
@@ -72,6 +77,8 @@ index 0000000..8918647
 +| `lib/client.js` | `WebChatPanel` 的 `thinking` / `search` | 初值来自 `localStorage`（默认开启），随切换写回 |
 +| `lib/index.js` | 路由 `/deepseek-web/preferences` | 新增 `GET` / `PUT`，把开关状态存到 `$DSH_HOME/dsh-web-bridge-preferences.json` |
 +| `lib/client.js` | 槽注册 | `sidebar.footer.action` → `sidebar.panellist`（id `deepseek-web`） |
++| `lib/client.js` | 会话页 | 左栏折叠开关 + `data-list-collapsed` 样式，状态存入偏好 |
++| `lib/index.js` | 偏好路由 | `listCollapsed` 字段（GET 返回，PUT 可单独更新） |
 +| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 +| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 +| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
@@ -153,7 +160,7 @@ index 3cc82d6..f462e58 100644
  Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
  
 diff --git a/README.md b/README.md
-index 936a857..c932fa4 100644
+index 936a857..f470ed4 100644
 --- a/README.md
 +++ b/README.md
 @@ -8,15 +8,21 @@
@@ -167,7 +174,7 @@ index 936a857..c932fa4 100644
  ## 能做什么
  
 -- 工作区下方直接浏览网页会话，支持搜索、新建、重命名和删除。删除前会确认，不影响已经导入的本地副本。
-+- 侧栏「DeepSeek 网页」入口（与「插件市场」同一组）打开网页对话列表：支持搜索、新建、重命名和删除，删除前会确认，不影响已经导入的本地副本。
++- 侧栏「DeepSeek 网页」入口（与「插件市场」同一组）打开网页对话列表：支持搜索、新建、重命名和删除，删除前会确认，不影响已经导入的本地副本；左侧列表可收起，收起后预览与导入区域占满宽度。
  - 在 DSH 内继续网页对话：流式回复、思考与搜索过程、来源、图片和附件，以及重新回答和回答版本切换。
  - 把网页会话拖入工作区，变成真正的 DSH 会话；也可以预览后选择工作区导入。
  - 导入时迁移可读取的图片和文件，同时把原文件放到目标工作区；失败项会单独列出，不会悄悄丢掉。
@@ -232,7 +239,7 @@ index 0000000..a92334a
 +- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
 +- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
 diff --git a/lib/client.js b/lib/client.js
-index fef5ba8..23a9b1b 100644
+index fef5ba8..70702a3 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
@@ -240,11 +247,29 @@ index fef5ba8..23a9b1b 100644
  		var LOCALE_NS = "@xueray/dsh-web-bridge";
  		var API_BASE = "/deepseek-web";
 -		var FALLBACK_VERSION = "0.4.5";
-+		var FALLBACK_VERSION = "0.4.5-fork.3";
++		var FALLBACK_VERSION = "0.4.5-fork.4";
  		var MAX_TOKEN_LENGTH = 4096;
  		var MAX_PROMPT_LENGTH = 8000;
  		var MAX_TEXT_CHARS = 20000;
-@@ -655,6 +655,7 @@ window.__ModuleLoader__.load({
+@@ -149,6 +149,8 @@ window.__ModuleLoader__.load({
+ 				retry: "重试",
+ 
+ 				sessionsHeading: "网页端会话",
++				libraryListShow: "展开会话列表",
++				libraryListHide: "收起会话列表",
+ 				refresh: "刷新",
+ 				loading: "加载中…",
+ 				sessionsNeedToken: "配置 token 后，这里会列出你网页端的会话。",
+@@ -359,6 +361,8 @@ window.__ModuleLoader__.load({
+ 				retry: "Retry",
+ 
+ 				sessionsHeading: "Web conversations",
++				libraryListShow: "Show conversation list",
++				libraryListHide: "Hide conversation list",
+ 				refresh: "Refresh",
+ 				loading: "Loading…",
+ 				sessionsNeedToken: "Configure a token to list your web conversations here.",
+@@ -655,6 +659,7 @@ window.__ModuleLoader__.load({
  			".dsweb-chat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:10px 20px;border-bottom:.5px solid var(--dsw-alias-border-l2)}.dsweb-chat-heading{flex:1;min-width:0}.dsweb-chat-title{margin:0;font-size:14px;line-height:22px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-chat-actions{display:flex;align-items:center;gap:6px;flex:none}",
  			".dsweb-chat-main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}.dsweb-chat-messages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable both-edges}.dsweb-chat-thread{box-sizing:border-box;width:calc(100% - 48px);max-width:var(--dsh-chat-content-width);margin:auto;padding:24px 0;display:flex;flex-direction:column;gap:28px;min-width:0}.dsweb-chat-empty{padding:20px;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:13px}",
  			".dsweb-composer-root{flex:none;display:flex;flex-direction:column;align-items:center;padding:0 16px 12px;gap:6px}.dsweb-chat-composer{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width);--dsw-elevation-stroke-color:var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-panel,24px);background:var(--dsw-specific-input-major);box-shadow:var(--dsw-elevation-soft);font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));border:0;display:flex;flex-direction:column;gap:12px;padding-top:8px;min-width:0}",
@@ -252,7 +277,15 @@ index fef5ba8..23a9b1b 100644
  			".dsweb-chat .dsweb-chat-input{box-sizing:border-box;width:calc(100% - 4px);min-height:36px;max-height:var(--dsh-composer-text-max-height);resize:none;overflow:auto;border:0;outline:0;border-radius:0;background:transparent;box-shadow:none;color:var(--dsw-alias-label-primary);caret-color:var(--dsw-alias-state-business-primary);font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere;padding:4px 8px 0 14px}.dsweb-chat .dsweb-chat-input:focus{outline:0;box-shadow:none}.dsweb-chat-input::placeholder{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary))}.dsweb-composer-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-width:0;padding:2px 8px 6px}.dsweb-composer-tools,.dsweb-composer-trailing{display:flex;align-items:center;gap:12px;min-width:0}.dsweb-composer-trailing{margin-left:auto;flex:none}.dsweb-composer-add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--dsw-specific-selector);color:var(--dsw-alias-label-primary);cursor:pointer}.dsweb-composer-add:hover{background:var(--dsw-alias-interactive-bg-hover-solid)}",
  			".dsweb-composer-mode,.dsweb-model-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;max-width:100%;min-width:0;padding:0 6px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;font-weight:500;cursor:pointer}.dsweb-composer-mode:hover,.dsweb-model-trigger:hover{background:var(--dsw-alias-interactive-bg-hover)}.dsweb-composer-mode[aria-pressed='true']{color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-state-business-tertiary,var(--dsw-alias-interactive-bg-hover))}.dsweb-model-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-model-mode{color:var(--dsw-alias-label-tertiary)}.dsweb-model-trigger[aria-expanded='true']>svg:last-child{transform:rotate(180deg)}.dsweb-chat-send{display:grid;place-items:center;flex:none;width:34px;height:34px;transform:translateY(-2px);border:0;border-radius:999px;background:var(--dsw-alias-button-info-fill);color:#fff;cursor:pointer;transition:background-color .1s}.dsweb-chat-send:hover:not(:disabled){background:var(--dsw-alias-button-info-hover)}.dsweb-chat-send:disabled{opacity:.4;cursor:default}.dsweb-composer-mode:disabled,.dsweb-model-trigger:disabled{opacity:.5;cursor:default}.dsweb-composer-root button:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}.dsweb-chat-option-row{display:flex;align-items:center;justify-content:space-between;gap:28px;min-width:200px;padding:8px 10px;font-size:13px}.dsweb-chat-options{max-width:calc(100vw - 24px)}.dsweb-chat-recovery{width:100%;max-width:var(--dsh-composer-card-max-width)}",
  			".dsweb-search-field{position:relative;min-width:0;flex:none;display:flex;align-items:center;color:var(--dsw-alias-label-tertiary)}.dsweb-search-field>svg{position:absolute;left:10px;pointer-events:none}.dsweb-search-field .dsweb-input{height:34px;padding:0 10px 0 32px;border:.5px solid var(--dsw-alias-border-l4,var(--dsw-alias-border-l2));background:var(--dsw-alias-bg-layer-1);font-size:12px}.dsweb-input:focus,.dsweb-textarea:focus{border-color:var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline:0;box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)) 18%,transparent)}",
-@@ -1092,6 +1093,40 @@ window.__ModuleLoader__.load({
+@@ -662,6 +667,7 @@ window.__ModuleLoader__.load({
+ 			".dsweb-settings .dsweb-card{padding:16px;gap:14px}.dsweb-settings-row{flex-direction:row;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.dsweb-settings-row>.dsweb-field{flex:1 1 260px}.dsweb-token-help{color:var(--dsw-alias-label-secondary);font-size:12px}.dsweb-token-help summary{cursor:pointer;padding:4px 0}.dsweb-token-help[open]{display:flex;flex-direction:column;gap:8px}.dsweb-settings .dsweb-footer{margin-top:4px}",
+ 			".dsweb-sidebar-list-head{padding:0 4px 0 8px;flex:none}.dsweb-sidebar-list-title{font-size:11px;font-weight:400;color:var(--dsw-alias-label-tertiary)}.dsweb-sidebar-list-icon{width:24px;height:24px;border:0;border-radius:var(--dsw-radius-sm,8px)}.dsweb-sidebar-list .dsweb-search-field{margin:0 4px}.dsweb-sidebar-list-body{padding:0 2px;overscroll-behavior:contain;scrollbar-gutter:auto;min-height:0}.dsweb-sidebar-list .dsweb-session{min-height:32px;height:32px;border:0;padding:0 8px 0 16px;gap:6px}.dsweb-sidebar-list .dsweb-session-main{flex-direction:row;align-items:center;gap:6px}.dsweb-sidebar-list .dsweb-session-title{flex:1;min-width:0;font-size:13px;line-height:20px}.dsweb-sidebar-list .dsweb-session-meta{flex:none;font-size:10px}.dsweb-sidebar-list .dsweb-session-meta .dsweb-tag,.dsweb-sidebar-list .dsweb-pinned{display:none}.dsweb-session[data-selected='1']{border-color:transparent;background:var(--dsw-alias-interactive-bg-hover)}.dsweb-sidebar-list .dsweb-notice{margin:0 4px}.dsweb-sidebar-list-token{padding:6px 8px}.dsweb-sidebar-list .dsweb-input{min-width:0}",
+ 			".dsweb-library{height:100%;min-height:0;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px}.dsweb-library-header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:.5px solid var(--dsw-alias-border-l2)}.dsweb-library-body{display:flex;flex:1;min-height:0;min-width:0}.dsweb-library-list{box-sizing:border-box;flex:0 0 280px;min-width:0;display:flex;flex-direction:column;gap:12px;padding:16px 12px;border-right:.5px solid var(--dsw-alias-border-l2)}.dsweb-library-list>.dsweb-card{background:transparent;border:0;padding:0;min-height:0}.dsweb-library-list .dsweb-session-list{max-height:none;flex:1;min-height:0}.dsweb-library-detail{box-sizing:border-box;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:auto;padding:20px 24px;gap:16px}.dsweb-library-detail>.dsweb-card{background:transparent;border:0;padding:0}.dsweb-library-detail .dsweb-preview{max-height:none;flex:1;min-height:0}.dsweb-library-actions{display:flex;flex-direction:column;gap:12px;flex:none;padding-top:14px;border-top:.5px solid var(--dsw-alias-border-l2)}.dsweb-library-connect{padding:24px;max-width:680px}.dsweb-library .dsweb-select{flex:1;min-width:0;max-width:100%}",
++			".dsweb-library[data-list-collapsed='1'] .dsweb-library-list{display:none}.dsweb-library[data-list-collapsed='1'] .dsweb-library-detail{padding-left:24px}",
+ 			".dsweb-message-text[data-markdown='1']{white-space:normal}.dsweb-chat .dsweb-message{border:0;border-radius:0;background:transparent;padding:0;gap:10px;min-width:0}.dsweb-chat .dsweb-message[data-role='user']{align-self:flex-end;max-width:min(calc(var(--dsh-chat-content-width)*.702),82%);padding:10px 16px;border-radius:var(--dsw-radius-xl,20px);background:var(--dsw-specific-bubble)}.dsweb-chat .dsweb-message[data-role='assistant']{width:100%}.dsweb-chat .dsweb-message-text{font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px))}.dsweb-chat .dsweb-message-head{display:none}.dsweb-thinking{border:0;border-left:2px solid var(--dsw-alias-border-l2);border-radius:0;background:transparent;padding:0 10px}.dsweb-thinking summary{font-size:12px;line-height:22px}.dsweb-chat-token{flex:1;min-height:0;padding:24px;box-sizing:border-box;width:100%;max-width:680px;overflow:auto;display:flex;flex-direction:column;gap:8px}",
+ 			"@media(max-width:760px){.dsweb-library-body{flex-direction:column;overflow:auto}.dsweb-library-list{flex:none;border-right:0;border-bottom:.5px solid var(--dsw-alias-border-l2);max-height:32vh}.dsweb-library-detail{flex:1 0 auto;overflow:visible;padding:16px}.dsweb-library-header{padding:12px 16px}.dsweb-chat-head{padding:10px 14px}}@container(width<=560px){.dsweb-composer-tools,.dsweb-composer-trailing{gap:8px}.dsweb-model-mode{display:none}.dsweb-chat-thread{width:calc(100% - 32px)}}@container(width<=320px){.dsweb-composer-row{gap:6px}.dsweb-composer-tools,.dsweb-composer-trailing{gap:4px}.dsweb-model-trigger{max-width:120px}}",
+ 			"@media(max-width:900px){.dsweb-page{height:auto;min-height:100%;overflow:visible}.dsweb-page-body{flex-direction:column}.dsweb-page-left,.dsweb-page-right{flex:1 1 auto;overflow:visible}.dsweb-session-list-fill{max-height:min(38vh,320px)}.dsweb-preview-fill{max-height:min(46vh,420px)}.dsweb-workspaces{max-height:none}}",
+@@ -1092,6 +1098,74 @@ window.__ModuleLoader__.load({
  			}
  		}
  
@@ -290,10 +323,94 @@ index fef5ba8..23a9b1b 100644
 +			}
 +		}
 +
++		// Web conversation list inside the page: remembers whether the left column is
++		// collapsed, so a narrow window can give the preview the whole width.
++		var LIBRARY_LIST_STORAGE_KEY = "dsh-deepseek-web.library-list";
++
++		function readStoredListCollapsed() {
++			try {
++				return window.localStorage.getItem(LIBRARY_LIST_STORAGE_KEY) === "1";
++			} catch (error) {
++				return false;
++			}
++		}
++
++		function storeListCollapsed(value) {
++			try {
++				if (value) window.localStorage.setItem(LIBRARY_LIST_STORAGE_KEY, "1");
++				else window.localStorage.removeItem(LIBRARY_LIST_STORAGE_KEY);
++			} catch (error) {
++				/* Storage may be disabled; the toggle still works for this session. */
++			}
++		}
++
++		function savePreference(patch) {
++			try {
++				fetch(API_BASE + "/preferences", {
++					method: "PUT",
++					credentials: "same-origin",
++					headers: { "content-type": "application/json" },
++					body: JSON.stringify(patch)
++				}).catch(function () { /* 偏好是可选能力，写失败不影响使用 */ });
++			} catch (error) {
++				/* ignore */
++			}
++		}
++
  		// Temporary web conversation shown in the main area. The store holds only
  		// { sessionId, title } for a chat.deepseek.com conversation; no DSH session is
  		// created and no local log is written for it.
-@@ -3841,14 +3876,52 @@ window.__ModuleLoader__.load({
+@@ -3139,6 +3213,9 @@ window.__ModuleLoader__.load({
+ 			var c = useClientController();
+ 			var queryState = React.useState("");
+ 			var query = queryState[0], setQuery = queryState[1];
++			var listCollapsedState = React.useState(readStoredListCollapsed);
++			var listCollapsed = listCollapsedState[0], setListCollapsed = listCollapsedState[1];
++			var listTouched = React.useRef(false);
+ 			var workspaceState = React.useState({ phase: "loading", items: [], error: "" });
+ 			var workspaces = workspaceState[0], setWorkspaces = workspaceState[1];
+ 			var target = useWorkspaceTarget(workspaces, c.currentSessionId);
+@@ -3156,15 +3233,38 @@ window.__ModuleLoader__.load({
+ 			var queryText = query.trim().toLocaleLowerCase();
+ 			var filtered = c.sessions.items.filter(function (item) { return !queryText || item.title.toLocaleLowerCase().indexOf(queryText) >= 0; });
+ 			var filteredController = Object.assign({}, c, { sessions: Object.assign({}, c.sessions, { items: filtered }) });
++			React.useEffect(function () {
++				var active = true;
++				fetch(API_BASE + "/preferences", { credentials: "same-origin", cache: "no-store" })
++					.then(function (response) { return response && response.ok ? response.json() : null; })
++					.then(function (payload) {
++						if (!active || listTouched.current) return;
++						if (payload && typeof payload.listCollapsed === "boolean") setListCollapsed(payload.listCollapsed);
++					})
++					.catch(function () { /* 偏好是可选能力，读不到就保持默认 */ });
++				return function () { active = false; };
++			}, []);
++			function toggleListCollapsed() {
++				var next = !listCollapsed;
++				listTouched.current = true;
++				setListCollapsed(next);
++				storeListCollapsed(next);
++				savePreference({ listCollapsed: next });
++			}
+ 			function openChat() {
+ 				if (!selected) return;
+ 				setWebChatCurrent({ sessionId: selected.id, title: selected.title });
+ 				selectMainPanel("deepseek-web-chat");
+ 			}
+-			return R("div", { className: "dsweb-library" },
++			return R("div", { className: "dsweb-library", "data-list-collapsed": listCollapsed ? "1" : "0" },
+ 				R("header", { className: "dsweb-library-header" },
+ 					R("div", { className: "dsweb-header" },
+ 						R("h2", { className: "dsweb-title" }, t("sessionsHeading"))),
++					R("button", { type: "button", className: "dsweb-icon-button",
++						title: listCollapsed ? t("libraryListShow") : t("libraryListHide"),
++						"aria-label": listCollapsed ? t("libraryListShow") : t("libraryListHide"),
++						"aria-expanded": listCollapsed ? "false" : "true",
++						onClick: toggleListCollapsed }, R(UiIcon, { name: listCollapsed ? "chevronRight" : "chevronLeft" })),
+ 					R("button", { type: "button", className: "dsweb-button", onClick: newWebConversation }, R(UiIcon, { name: "plus", size: 14 }), t("newWebChat")),
+ 					R("button", { type: "button", className: "dsweb-icon-button", title: t("webChatClose"),
+ 						"aria-label": t("webChatClose"), onClick: function () { selectMainPanel(null); } }, R(UiIcon, { name: "close" }))),
+@@ -3841,14 +3941,52 @@ window.__ModuleLoader__.load({
  			var prompt = promptState[0];
  			var setPrompt = promptState[1];
  
@@ -348,7 +465,7 @@ index fef5ba8..23a9b1b 100644
  			var sendingState = React.useState(false);
  			var sending = sendingState[0];
  			var setSending = sendingState[1];
-@@ -3872,6 +3945,8 @@ window.__ModuleLoader__.load({
+@@ -3872,6 +4010,8 @@ window.__ModuleLoader__.load({
  			var fileInputRef = React.useRef(null);
  			var filesState = React.useState([]), files = filesState[0], setFiles = filesState[1];
  			var fileErrorState = React.useState(""), fileError = fileErrorState[0], setFileError = fileErrorState[1];
@@ -357,7 +474,7 @@ index fef5ba8..23a9b1b 100644
  			var filesRef = React.useRef([]), uploadEpoch = React.useRef(0), fileSequence = React.useRef(0);
  			var uploadControllers = React.useRef(new Map()), uploadQueue = React.useRef(Promise.resolve());
  			function updateFiles(transform) {
-@@ -3925,6 +4000,40 @@ window.__ModuleLoader__.load({
+@@ -3925,6 +4065,40 @@ window.__ModuleLoader__.load({
  				updateFiles(function (list) { return list.concat(added); });
  				queueUploads(added);
  			}
@@ -398,7 +515,7 @@ index fef5ba8..23a9b1b 100644
  			function removeFile(key) {
  				var controller = uploadControllers.current.get(key);
  				if (controller) controller.abort();
-@@ -4232,6 +4341,32 @@ window.__ModuleLoader__.load({
+@@ -4232,6 +4406,32 @@ window.__ModuleLoader__.load({
  									setPrompt(event.target.value);
  									setSendError("");
  								},
@@ -431,7 +548,7 @@ index fef5ba8..23a9b1b 100644
  								onKeyDown: function (event) {
  									if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
  									event.preventDefault();
-@@ -4251,10 +4386,10 @@ window.__ModuleLoader__.load({
+@@ -4251,10 +4451,10 @@ window.__ModuleLoader__.load({
  											if (fileInputRef.current) fileInputRef.current.click();
  										} }, R(UiIcon, { name: "plus", size: 14 })),
  									R("button", { type: "button", className: "dsweb-composer-mode", "aria-pressed": thinking, disabled: sending,
@@ -444,7 +561,7 @@ index fef5ba8..23a9b1b 100644
  										R(UiIcon, { name: "globe", size: 16 }), R("span", { className: "dsweb-mode-label" }, tt("continueSearch")))),
  								R("div", { className: "dsweb-composer-trailing" },
  									R("span", { className: "dsweb-model-label" }, "DeepSeek"),
-@@ -4268,7 +4403,11 @@ window.__ModuleLoader__.load({
+@@ -4268,7 +4468,11 @@ window.__ModuleLoader__.load({
  
  			return R(
  				"div",
@@ -457,7 +574,7 @@ index fef5ba8..23a9b1b 100644
  				R(
  					"header",
  					{ className: "dsweb-chat-head" },
-@@ -4429,24 +4568,27 @@ window.__ModuleLoader__.load({
+@@ -4429,24 +4633,27 @@ window.__ModuleLoader__.load({
  					console.error("[dsh-deepseek-web] settings section:", error);
  				}
  
@@ -493,7 +610,7 @@ index fef5ba8..23a9b1b 100644
  
  				// Browsing/importing lives in a normal keyed main panel.
 diff --git a/lib/index.js b/lib/index.js
-index d1565ed..4c64268 100644
+index d1565ed..f97e9d6 100644
 --- a/lib/index.js
 +++ b/lib/index.js
 @@ -9,6 +9,9 @@
@@ -511,7 +628,7 @@ index d1565ed..4c64268 100644
  ];
  
 -const VERSION = "0.4.5";
-+const VERSION = "0.4.5-fork.3";
++const VERSION = "0.4.5-fork.4";
  const CAPABILITIES = { upload: true, imagePreview: true, newConversation: true, streaming: true, processSteps: true, regenerate: true, branches: true, importAttachments: true, workspaceFiles: true, deleteConversation: true, renameConversation: true };
  const TOKEN_REF = "DEEPSEEK_WEB_TOKEN";
  const MAX_BODY_BYTES = 256 * 1024;
@@ -560,7 +677,7 @@ index d1565ed..4c64268 100644
    if (!id || id.length > 200 || /[\u0000-\u001f\u007f]/.test(id)) {
      throw errorWithStatus(400, "invalid sessionId");
    }
-@@ -1056,11 +1093,26 @@ export function apply(ctx) {
+@@ -1056,11 +1093,39 @@ export function apply(ctx) {
        tokenHint: tokenHint(token),
        tokenSource: source,
        baseUrl: baseUrl(),
@@ -575,21 +692,34 @@ index d1565ed..4c64268 100644
 +    assertLocalRequest(req);
 +    if (req.method === "GET") {
 +      const prefs = await readPreferences();
-+      json(res, 200, { ok: true, composerMode: normalizeComposerMode(prefs.composerMode) });
++      json(res, 200, {
++        ok: true,
++        composerMode: normalizeComposerMode(prefs.composerMode),
++        listCollapsed: prefs.listCollapsed === true
++      });
 +      return;
 +    }
 +    if (!methodAllowed(req, res, "PUT")) return;
 +    const body = await readJsonBody(req);
-+    const mode = normalizeComposerMode(body && body.composerMode);
-+    if (!mode) throw errorWithStatus(400, "composerMode must be an object");
-+    await writePreferences({ composerMode: mode });
-+    json(res, 200, { ok: true, composerMode: mode });
++    const patch = {};
++    if (body && body.composerMode !== undefined) {
++      const mode = normalizeComposerMode(body.composerMode);
++      if (!mode) throw errorWithStatus(400, "composerMode must be an object");
++      patch.composerMode = mode;
++    }
++    if (body && body.listCollapsed !== undefined) {
++      if (typeof body.listCollapsed !== "boolean") throw errorWithStatus(400, "listCollapsed must be a boolean");
++      patch.listCollapsed = body.listCollapsed;
++    }
++    if (!Object.keys(patch).length) throw errorWithStatus(400, "no preference to update");
++    await writePreferences(patch);
++    json(res, 200, Object.assign({ ok: true }, patch));
 +  }
 +
    async function handleToken(req, res) {
      if (!methodAllowed(req, res, "POST")) return;
      assertLocalRequest(req);
-@@ -1401,6 +1453,7 @@ export function apply(ctx) {
+@@ -1401,6 +1466,7 @@ export function apply(ctx) {
          return;
        }
        if (subpath === "/status") return await handleStatus(req, res);
@@ -598,14 +728,14 @@ index d1565ed..4c64268 100644
        if (subpath === "/sessions") return await handleSessions(req, res, url);
        if (subpath === "/history") return await handleHistory(req, res, url);
 diff --git a/package.json b/package.json
-index afcef71..4fedf4c 100644
+index afcef71..9811f8e 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,6 +1,6 @@
  {
    "name": "@xueray/dsh-web-bridge",
 -  "version": "0.4.5",
-+  "version": "0.4.5-fork.3",
++  "version": "0.4.5-fork.4",
    "type": "module",
    "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
    "author": {
@@ -618,10 +748,10 @@ index afcef71..4fedf4c 100644
      "assets/screenshots",
      "screenshots.json"
 diff --git a/test/host-routes.test.js b/test/host-routes.test.js
-index ecaf9c5..c821b19 100644
+index ecaf9c5..58fffec 100644
 --- a/test/host-routes.test.js
 +++ b/test/host-routes.test.js
-@@ -568,3 +568,35 @@ test('rename route validates, trims and returns only the requested web title wit
+@@ -568,3 +568,44 @@ test('rename route validates, trims and returns only the requested web title wit
    assert.deepEqual(result, { ok: true, sessionId: 'web-one', title: '新的网页标题' });
    assert.equal(calls, 1); assert.deepEqual(app.titles, []); assert.deepEqual(app.creates, []);
  });
@@ -637,7 +767,7 @@ index ecaf9c5..c821b19 100644
 +  const app = await host(t);
 +
 +  const before = await (await fetch(app.base + '/deepseek-web/preferences')).json();
-+  assert.deepEqual(before, { ok: true, composerMode: null });
++  assert.deepEqual(before, { ok: true, composerMode: null, listCollapsed: false });
 +
 +  const saved = await fetch(app.base + '/deepseek-web/preferences', {
 +    method: 'PUT',
@@ -647,8 +777,17 @@ index ecaf9c5..c821b19 100644
 +  assert.equal(saved.status, 200);
 +
 +  const after = await (await fetch(app.base + '/deepseek-web/preferences')).json();
-+  assert.deepEqual(after, { ok: true, composerMode: { thinking: true, search: false } });
++  assert.deepEqual(after, { ok: true, composerMode: { thinking: true, search: false }, listCollapsed: false });
 +  assert.deepEqual(JSON.parse(await readFile(file, 'utf8')).composerMode, { thinking: true, search: false });
++
++  const collapsed = await fetch(app.base + '/deepseek-web/preferences', {
++    method: 'PUT',
++    headers: { 'content-type': 'application/json' },
++    body: JSON.stringify({ listCollapsed: true }),
++  });
++  assert.equal(collapsed.status, 200);
++  const collapsedRead = await (await fetch(app.base + '/deepseek-web/preferences')).json();
++  assert.deepEqual(collapsedRead, { ok: true, composerMode: { thinking: true, search: false }, listCollapsed: true });
 +
 +  const invalid = await fetch(app.base + '/deepseek-web/preferences', {
 +    method: 'PUT',

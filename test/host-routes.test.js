@@ -580,7 +580,7 @@ test('preferences route persists composer modes outside the page origin', async 
   const app = await host(t);
 
   const before = await (await fetch(app.base + '/deepseek-web/preferences')).json();
-  assert.deepEqual(before, { ok: true, composerMode: null });
+  assert.deepEqual(before, { ok: true, composerMode: null, listCollapsed: false });
 
   const saved = await fetch(app.base + '/deepseek-web/preferences', {
     method: 'PUT',
@@ -590,8 +590,17 @@ test('preferences route persists composer modes outside the page origin', async 
   assert.equal(saved.status, 200);
 
   const after = await (await fetch(app.base + '/deepseek-web/preferences')).json();
-  assert.deepEqual(after, { ok: true, composerMode: { thinking: true, search: false } });
+  assert.deepEqual(after, { ok: true, composerMode: { thinking: true, search: false }, listCollapsed: false });
   assert.deepEqual(JSON.parse(await readFile(file, 'utf8')).composerMode, { thinking: true, search: false });
+
+  const collapsed = await fetch(app.base + '/deepseek-web/preferences', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ listCollapsed: true }),
+  });
+  assert.equal(collapsed.status, 200);
+  const collapsedRead = await (await fetch(app.base + '/deepseek-web/preferences')).json();
+  assert.deepEqual(collapsedRead, { ok: true, composerMode: { thinking: true, search: false }, listCollapsed: true });
 
   const invalid = await fetch(app.base + '/deepseek-web/preferences', {
     method: 'PUT',
