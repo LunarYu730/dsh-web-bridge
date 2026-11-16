@@ -15,6 +15,7 @@
 2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
 3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
 4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
+5. **侧栏入口位置**：槽位从 `sidebar.footer.action` 改为 `sidebar.panellist`（id `deepseek-web`），与「插件」「插件市场」同组；点击在主区域打开 `deepseek-web` 面板，不再在侧栏内联展开、不再压住工作区会话。
 
 两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 
@@ -37,6 +38,7 @@ git diff upstream/main HEAD -- . ':(exclude)assets/promo'
 | `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
 | `lib/client.js` | `WebChatPanel` 的 `thinking` / `search` | 初值来自 `localStorage`（默认开启），随切换写回 |
 | `lib/index.js` | 路由 `/deepseek-web/preferences` | 新增 `GET` / `PUT`，把开关状态存到 `$DSH_HOME/dsh-web-bridge-preferences.json` |
+| `lib/client.js` | 槽注册 | `sidebar.footer.action` → `sidebar.panellist`（id `deepseek-web`） |
 | `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 | `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 | `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |

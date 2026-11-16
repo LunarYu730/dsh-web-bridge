@@ -14,7 +14,7 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
 
 ## Features
 
-- Inline sidebar conversations with search, create, rename and confirmed permanent deletion.
+- A sidebar entry next to the plugin entries opens the web conversation list, with search, create, rename and confirmed permanent deletion.
 - Web chat with streaming, interleaved thinking/search steps, sources, images and file attachments.
 - Regenerate an answer, switch between versions and continue from the selected branch.
 - Drag a conversation into a workspace or preview it before importing. Readable attachments migrate to local DSH storage, with original files also saved in the workspace.

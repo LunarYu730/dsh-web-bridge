@@ -1,5 +1,9 @@
 # 更新记录
 
+## 0.4.5-fork.3
+
+- 侧栏入口从「工作区下方的页脚」移到 DSH 的侧栏面板列表（与「插件」「插件市场」同一组）：点击直接在主区域打开网页对话列表，展开的清单不再挤压或遮挡下方的工作区会话；搜索、新建、重命名、删除、拖到工作区行导入仍在主面板里可用。
+
 ## 0.4.5-fork.2
 
 - 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择：先写 `localStorage`（`dsh-deepseek-web.composer-mode`），再通过新增的 `GET/PUT /deepseek-web/preferences` 存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，因此换端口、重开对话或重启 DSH 后都保持上次状态。

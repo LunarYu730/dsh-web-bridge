@@ -1,10 +1,14 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index a63d5f2..785f93b 100644
+index a63d5f2..59ba6f7 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -1,5 +1,18 @@
+@@ -1,5 +1,22 @@
  # 更新记录
  
++## 0.4.5-fork.3
++
++- 侧栏入口从「工作区下方的页脚」移到 DSH 的侧栏面板列表（与「插件」「插件市场」同一组）：点击直接在主区域打开网页对话列表，展开的清单不再挤压或遮挡下方的工作区会话；搜索、新建、重命名、删除、拖到工作区行导入仍在主面板里可用。
++
 +## 0.4.5-fork.2
 +
 +- 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择：先写 `localStorage`（`dsh-deepseek-web.composer-mode`），再通过新增的 `GET/PUT /deepseek-web/preferences` 存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，因此换端口、重开对话或重启 DSH 后都保持上次状态。
@@ -23,10 +27,10 @@ index a63d5f2..785f93b 100644
  - npm 包名为 `@xueray/dsh-web-bridge`，界面名称为「DeepSeek 会话桥」；原配置行 ID、HTTP 路由和浏览器偏好键保持兼容。
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..8173bcb
+index 0000000..8918647
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,95 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
@@ -44,6 +48,7 @@ index 0000000..8173bcb
 +2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
 +3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
 +4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
++5. **侧栏入口位置**：槽位从 `sidebar.footer.action` 改为 `sidebar.panellist`（id `deepseek-web`），与「插件」「插件市场」同组；点击在主区域打开 `deepseek-web` 面板，不再在侧栏内联展开、不再压住工作区会话。
 +
 +两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 +
@@ -66,6 +71,7 @@ index 0000000..8173bcb
 +| `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
 +| `lib/client.js` | `WebChatPanel` 的 `thinking` / `search` | 初值来自 `localStorage`（默认开启），随切换写回 |
 +| `lib/index.js` | 路由 `/deepseek-web/preferences` | 新增 `GET` / `PUT`，把开关状态存到 `$DSH_HOME/dsh-web-bridge-preferences.json` |
++| `lib/client.js` | 槽注册 | `sidebar.footer.action` → `sidebar.panellist`（id `deepseek-web`） |
 +| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 +| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 +| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
@@ -121,10 +127,10 @@ index 0000000..8173bcb
 +
 +上游使用的是 DeepSeek 网页端的非公开接口，没有稳定性承诺，可能被限流或改变；发送、重答、删除等操作会修改网页账号。请自行确认使用方式符合服务条款。
 diff --git a/README.en.md b/README.en.md
-index 3cc82d6..e4f9eed 100644
+index 3cc82d6..f462e58 100644
 --- a/README.en.md
 +++ b/README.en.md
-@@ -8,6 +8,8 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
+@@ -8,15 +8,20 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
  
  I built it to stop copying context between two windows. Open a web conversation when you want to stay on the web account; drag it into a workspace when you want your local agent to take over.
  
@@ -133,7 +139,10 @@ index 3cc82d6..e4f9eed 100644
  This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not the similarly named `dsh-deepseek-web` npm package. It uses private web endpoints that can change without notice.
  
  ## Features
-@@ -17,6 +19,9 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
+ 
+-- Inline sidebar conversations with search, create, rename and confirmed permanent deletion.
++- A sidebar entry next to the plugin entries opens the web conversation list, with search, create, rename and confirmed permanent deletion.
+ - Web chat with streaming, interleaved thinking/search steps, sources, images and file attachments.
  - Regenerate an answer, switch between versions and continue from the selected branch.
  - Drag a conversation into a workspace or preview it before importing. Readable attachments migrate to local DSH storage, with original files also saved in the workspace.
  - Native DSH components and theme tokens, with Chinese/English following your app language.
@@ -144,10 +153,10 @@ index 3cc82d6..e4f9eed 100644
  Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
  
 diff --git a/README.md b/README.md
-index 936a857..87e613a 100644
+index 936a857..c932fa4 100644
 --- a/README.md
 +++ b/README.md
-@@ -8,6 +8,8 @@
+@@ -8,15 +8,21 @@
  
  写它的原因挺简单：网页里聊了一半，切到 DSH 又得复制上下文；有图片、文件时就更麻烦了。所以做了一个桥——想留在网页账号里继续聊就直接打开，想交给工作区里的 Agent 接着做就拖进去。
  
@@ -156,7 +165,10 @@ index 936a857..87e613a 100644
  这是 **SaiSenBox 的非官方插件**，不属于 DeepSeek 官方产品，也不是名称相近的 `dsh-deepseek-web` npm 包。网页接口没有稳定性承诺，可能随时变化；使用前请了解[风险与限制](#风险与限制)。
  
  ## 能做什么
-@@ -17,6 +19,10 @@
+ 
+-- 工作区下方直接浏览网页会话，支持搜索、新建、重命名和删除。删除前会确认，不影响已经导入的本地副本。
++- 侧栏「DeepSeek 网页」入口（与「插件市场」同一组）打开网页对话列表：支持搜索、新建、重命名和删除，删除前会确认，不影响已经导入的本地副本。
+ - 在 DSH 内继续网页对话：流式回复、思考与搜索过程、来源、图片和附件，以及重新回答和回答版本切换。
  - 把网页会话拖入工作区，变成真正的 DSH 会话；也可以预览后选择工作区导入。
  - 导入时迁移可读取的图片和文件，同时把原文件放到目标工作区；失败项会单独列出，不会悄悄丢掉。
  - 中文、英文随 DSH 设置切换，沿用原生主题、Markdown 和交互组件。
@@ -220,7 +232,7 @@ index 0000000..a92334a
 +- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
 +- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
 diff --git a/lib/client.js b/lib/client.js
-index fef5ba8..07ea905 100644
+index fef5ba8..23a9b1b 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
@@ -228,7 +240,7 @@ index fef5ba8..07ea905 100644
  		var LOCALE_NS = "@xueray/dsh-web-bridge";
  		var API_BASE = "/deepseek-web";
 -		var FALLBACK_VERSION = "0.4.5";
-+		var FALLBACK_VERSION = "0.4.5-fork.2";
++		var FALLBACK_VERSION = "0.4.5-fork.3";
  		var MAX_TOKEN_LENGTH = 4096;
  		var MAX_PROMPT_LENGTH = 8000;
  		var MAX_TEXT_CHARS = 20000;
@@ -445,8 +457,43 @@ index fef5ba8..07ea905 100644
  				R(
  					"header",
  					{ className: "dsweb-chat-head" },
+@@ -4429,24 +4568,27 @@ window.__ModuleLoader__.load({
+ 					console.error("[dsh-deepseek-web] settings section:", error);
+ 				}
+ 
+-				// The official extension below workspaces owns the inline web group.
++				// Sidebar entry: a row in DSH's panel list (next to 插件 / 插件市场) that opens
++				// the browsing panel in the main area. It used to live in
++				// "sidebar.footer.action" and expanded the conversation list inline, which
++				// pushed the workspace sessions out of reach while it was open.
+ 				try {
+-					ctx.slots.inject("sidebar.footer.action", function () {
++					ctx.slots.inject("sidebar.panellist", function () {
+ 						return ctx.slots.register(
+ 							{
+-								name: "sidebar.footer.action",
+-								id: "deepseek-web-list",
+-								order: 5,
++								name: "sidebar.panellist",
++								id: "deepseek-web",
++								order: 25,
+ 								locale: LOCALE_NS,
+ 								label: function () {
+ 									return t("sidebarListLabel");
+ 								}
+ 							},
+-							SafeFooterAction
++							SidebarPanelIcon
+ 						);
+ 					});
+ 				} catch (error) {
+-					console.error("[dsh-deepseek-web] sidebar footer action:", error);
++					console.error("[dsh-deepseek-web] sidebar panel entry:", error);
+ 				}
+ 
+ 				// Browsing/importing lives in a normal keyed main panel.
 diff --git a/lib/index.js b/lib/index.js
-index d1565ed..be93430 100644
+index d1565ed..4c64268 100644
 --- a/lib/index.js
 +++ b/lib/index.js
 @@ -9,6 +9,9 @@
@@ -464,7 +511,7 @@ index d1565ed..be93430 100644
  ];
  
 -const VERSION = "0.4.5";
-+const VERSION = "0.4.5-fork.2";
++const VERSION = "0.4.5-fork.3";
  const CAPABILITIES = { upload: true, imagePreview: true, newConversation: true, streaming: true, processSteps: true, regenerate: true, branches: true, importAttachments: true, workspaceFiles: true, deleteConversation: true, renameConversation: true };
  const TOKEN_REF = "DEEPSEEK_WEB_TOKEN";
  const MAX_BODY_BYTES = 256 * 1024;
@@ -551,14 +598,14 @@ index d1565ed..be93430 100644
        if (subpath === "/sessions") return await handleSessions(req, res, url);
        if (subpath === "/history") return await handleHistory(req, res, url);
 diff --git a/package.json b/package.json
-index afcef71..7cfcdec 100644
+index afcef71..4fedf4c 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,6 +1,6 @@
  {
    "name": "@xueray/dsh-web-bridge",
 -  "version": "0.4.5",
-+  "version": "0.4.5-fork.2",
++  "version": "0.4.5-fork.3",
    "type": "module",
    "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
    "author": {
