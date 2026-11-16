@@ -17,6 +17,7 @@
 4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
 5. **侧栏入口位置**：槽位从 `sidebar.footer.action` 改为 `sidebar.panellist`（id `deepseek-web`），与「插件」「插件市场」同组；点击在主区域打开 `deepseek-web` 面板，不再在侧栏内联展开、不再压住工作区会话。
 6. **会话页左栏可收起**：网页端会话页标题栏加了折叠按钮，收起后预览/导入区域占满宽度；状态写 `localStorage`（`dsh-deepseek-web.library-list`）并同步到 `/deepseek-web/preferences` 的 `listCollapsed`。
+7. **图片导入回退**：网页端文件服务不再为图片提供原图（`ty=r` 返回 HTTP 400），`getImage(original: true)` 在 400 时改用 `ty=p` 预览图并标记 `downgraded`；导入结果会提示「N 张图片的原文件不可读，已改用预览图」。
 
 两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 
@@ -42,6 +43,8 @@ git diff upstream/main HEAD -- . ':(exclude)assets/promo'
 | `lib/client.js` | 槽注册 | `sidebar.footer.action` → `sidebar.panellist`（id `deepseek-web`） |
 | `lib/client.js` | 会话页 | 左栏折叠开关 + `data-list-collapsed` 样式，状态存入偏好 |
 | `lib/index.js` | 偏好路由 | `listCollapsed` 字段（GET 返回，PUT 可单独更新） |
+| `lib/deepseek-api.js` | `getImage` | 原图 400 时回退到预览图，返回 `downgraded` |
+| `lib/index.js` | 导入附件 | 记录 `imagesDowngraded`，供结果面板提示 |
 | `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 | `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 | `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |

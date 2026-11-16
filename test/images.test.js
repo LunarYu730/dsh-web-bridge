@@ -129,3 +129,18 @@ test('original file downloads refuse redirects, large declared and large chunked
     }, error => ['too_large', 'file_unavailable'].includes(error.code));
   }
 });
+
+test('image original falls back to the preview transform when ty=r is refused', async () => {
+  const calls = [];
+  const api = new DeepSeekWebApi({ token: 'test', fetchImpl: async (url) => {
+    calls.push(String(url));
+    if (calls.length === 1) return envelope({ files: [{ id: 'file-photo', signed_path: '/file/picture?signature=example' }] });
+    if (new URL(String(url)).searchParams.get('ty') === 'r') return new Response('', { status: 400 });
+    return new Response(png, { headers: { 'content-type': 'application/octet-stream' } });
+  } });
+  const image = await api.getImage('file-photo', { original: true });
+  assert.equal(image.downgraded, true);
+  assert.deepEqual(image.bytes, png);
+  assert.equal(new URL(calls[1]).searchParams.get('ty'), 'r');
+  assert.equal(new URL(calls[2]).searchParams.get('ty'), 'p');
+});

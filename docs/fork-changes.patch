@@ -1,10 +1,17 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index a63d5f2..46c40f3 100644
+index 1db8f31..2cc2fac 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -1,5 +1,26 @@
+@@ -1,9 +1,29 @@
  # 更新记录
  
+-## 0.4.6
++## 0.4.5-fork.5
+ 
+-- 网页对话支持粘贴和拖放附件，保留普通文本粘贴和「+」选文件入口。
+-- 三种附件入口共用上传可用性检查；旧后台先提示重启，不产生失败附件，也不阻塞纯文字发送。只有当前能接收附件时，拖放才高亮输入框。
++- 修复图片附件导入失败：网页端文件服务不再为图片提供原图（`ty=r` 返回 HTTP 400，`ty=p` 预览仍可用），导入时自动回退到预览图继续，不再整条附件丢失；导入结果会提示「N 张图片的原文件不可读，已改用预览图」。
++
 +## 0.4.5-fork.4
 +
 +- 网页端会话页左侧的会话列表可以收起：标题栏新增一个折叠按钮，收起后预览/导入区域占满整个宽度；状态记在 `localStorage` 并同步到 `GET/PUT /deepseek-web/preferences`（`listCollapsed`），重启 DSH 后保持。
@@ -25,16 +32,15 @@ index a63d5f2..46c40f3 100644
 +- 聊天面板支持**拖放附件**：把文件拖到聊天区域任意位置，输入框显示虚线高亮，松手后加入附件；发送中、历史加载中或回答分支异常时不接收。
 +- 两种方式都复用原有上传链路与限制：最多 10 个附件、单个 ≤ 20 MiB，任意文件类型，沿用原有缩略图与失败提示。
 +- 新增 `FORK.md`，说明改动范围、署名、非商业许可要求与发布检查清单；版本常量改为 `0.4.5-fork.1`。
-+
+ 
  ## 0.4.5
  
- - npm 包名为 `@xueray/dsh-web-bridge`，界面名称为「DeepSeek 会话桥」；原配置行 ID、HTTP 路由和浏览器偏好键保持兼容。
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..a8d9bda
+index 0000000..3e0353f
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,101 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
@@ -54,6 +60,7 @@ index 0000000..a8d9bda
 +4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
 +5. **侧栏入口位置**：槽位从 `sidebar.footer.action` 改为 `sidebar.panellist`（id `deepseek-web`），与「插件」「插件市场」同组；点击在主区域打开 `deepseek-web` 面板，不再在侧栏内联展开、不再压住工作区会话。
 +6. **会话页左栏可收起**：网页端会话页标题栏加了折叠按钮，收起后预览/导入区域占满宽度；状态写 `localStorage`（`dsh-deepseek-web.library-list`）并同步到 `/deepseek-web/preferences` 的 `listCollapsed`。
++7. **图片导入回退**：网页端文件服务不再为图片提供原图（`ty=r` 返回 HTTP 400），`getImage(original: true)` 在 400 时改用 `ty=p` 预览图并标记 `downgraded`；导入结果会提示「N 张图片的原文件不可读，已改用预览图」。
 +
 +两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 +
@@ -79,6 +86,8 @@ index 0000000..a8d9bda
 +| `lib/client.js` | 槽注册 | `sidebar.footer.action` → `sidebar.panellist`（id `deepseek-web`） |
 +| `lib/client.js` | 会话页 | 左栏折叠开关 + `data-list-collapsed` 样式，状态存入偏好 |
 +| `lib/index.js` | 偏好路由 | `listCollapsed` 字段（GET 返回，PUT 可单独更新） |
++| `lib/deepseek-api.js` | `getImage` | 原图 400 时回退到预览图，返回 `downgraded` |
++| `lib/index.js` | 导入附件 | 记录 `imagesDowngraded`，供结果面板提示 |
 +| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 +| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 +| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
@@ -134,7 +143,7 @@ index 0000000..a8d9bda
 +
 +上游使用的是 DeepSeek 网页端的非公开接口，没有稳定性承诺，可能被限流或改变；发送、重答、删除等操作会修改网页账号。请自行确认使用方式符合服务条款。
 diff --git a/README.en.md b/README.en.md
-index 3cc82d6..f462e58 100644
+index 332a3bf..f462e58 100644
 --- a/README.en.md
 +++ b/README.en.md
 @@ -8,15 +8,20 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
@@ -159,8 +168,17 @@ index 3cc82d6..f462e58 100644
  
  Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
  
+@@ -67,7 +72,7 @@ Local checkout or tarball:
+ ```sh
+ dsh plugin --profile desktop add ./dsh-web-bridge
+ # Or a downloaded tarball:
+-dsh plugin --profile desktop add ./xueray-dsh-web-bridge-0.4.6.tgz
++dsh plugin --profile desktop add ./xueray-dsh-web-bridge-0.4.5.tgz
+ ```
+ 
+ **Fully quit DSH, including the tray process, and reopen it after installing or updating.** A page refresh does not reload the Host routes.
 diff --git a/README.md b/README.md
-index 936a857..f470ed4 100644
+index 57d4c9e..f470ed4 100644
 --- a/README.md
 +++ b/README.md
 @@ -8,15 +8,21 @@
@@ -186,6 +204,15 @@ index 936a857..f470ed4 100644
  
  **两种“继续聊”不是一回事：**点击网页会话，回复会写回网页账号；拖入工作区后，继续对话使用 DSH 当前默认模型，不会写回原网页会话。
  
+@@ -68,7 +74,7 @@ dsh plugin --profile desktop add github:SaiSenBox/dsh-web-bridge
+ 
+ ```sh
+ dsh plugin --profile desktop add ./dsh-web-bridge
+-# 或：dsh plugin --profile desktop add ./xueray-dsh-web-bridge-0.4.6.tgz
++# 或：dsh plugin --profile desktop add ./xueray-dsh-web-bridge-0.4.5.tgz
+ ```
+ 
+ 装好或更新后，**完全退出 DSH，包括托盘进程，再重新打开**。只刷新页面不会更新 Host 接口。
 diff --git a/docs/upstream-pr.md b/docs/upstream-pr.md
 new file mode 100644
 index 0000000..a92334a
@@ -239,19 +266,27 @@ index 0000000..a92334a
 +- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
 +- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
 diff --git a/lib/client.js b/lib/client.js
-index fef5ba8..70702a3 100644
+index 283ab2b..4d59915 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
  
  		var LOCALE_NS = "@xueray/dsh-web-bridge";
  		var API_BASE = "/deepseek-web";
--		var FALLBACK_VERSION = "0.4.5";
-+		var FALLBACK_VERSION = "0.4.5-fork.4";
+-		var FALLBACK_VERSION = "0.4.6";
++		var FALLBACK_VERSION = "0.4.5-fork.5";
  		var MAX_TOKEN_LENGTH = 4096;
  		var MAX_PROMPT_LENGTH = 8000;
  		var MAX_TEXT_CHARS = 20000;
-@@ -149,6 +149,8 @@ window.__ModuleLoader__.load({
+@@ -50,6 +50,7 @@ window.__ModuleLoader__.load({
+ 				imageFailed: "图片加载失败",
+ 				imageLoading: "图片加载中…",
+ 				attachmentsImported: "附件已保存到本地：{count}/{total}",
++				importPreviewOnly: "其中 {count} 张图片的原文件不可读（网页端已不再提供原图），已改用预览图。",
+ 				attachmentsFailed: "未导入：{name}（{message}）",
+ 				workspaceFilesSaved: "原文件已保存到工作区：{count}/{total}",
+ 				workspaceFileFailed: "未保存到工作区：{name}（{message}）",
+@@ -149,6 +150,8 @@ window.__ModuleLoader__.load({
  				retry: "重试",
  
  				sessionsHeading: "网页端会话",
@@ -260,7 +295,15 @@ index fef5ba8..70702a3 100644
  				refresh: "刷新",
  				loading: "加载中…",
  				sessionsNeedToken: "配置 token 后，这里会列出你网页端的会话。",
-@@ -359,6 +361,8 @@ window.__ModuleLoader__.load({
+@@ -260,6 +263,7 @@ window.__ModuleLoader__.load({
+ 				imageFailed: "Image could not be loaded",
+ 				imageLoading: "Loading image…",
+ 				attachmentsImported: "Attachments saved locally: {count}/{total}",
++				importPreviewOnly: "{count} image(s) had no readable original (the web service no longer serves originals); the preview was imported instead.",
+ 				attachmentsFailed: "Not imported: {name} ({message})",
+ 				workspaceFilesSaved: "Original files saved to workspace: {count}/{total}",
+ 				workspaceFileFailed: "Not saved to workspace: {name} ({message})",
+@@ -359,6 +363,8 @@ window.__ModuleLoader__.load({
  				retry: "Retry",
  
  				sessionsHeading: "Web conversations",
@@ -269,15 +312,7 @@ index fef5ba8..70702a3 100644
  				refresh: "Refresh",
  				loading: "Loading…",
  				sessionsNeedToken: "Configure a token to list your web conversations here.",
-@@ -655,6 +659,7 @@ window.__ModuleLoader__.load({
- 			".dsweb-chat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:10px 20px;border-bottom:.5px solid var(--dsw-alias-border-l2)}.dsweb-chat-heading{flex:1;min-width:0}.dsweb-chat-title{margin:0;font-size:14px;line-height:22px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-chat-actions{display:flex;align-items:center;gap:6px;flex:none}",
- 			".dsweb-chat-main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}.dsweb-chat-messages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable both-edges}.dsweb-chat-thread{box-sizing:border-box;width:calc(100% - 48px);max-width:var(--dsh-chat-content-width);margin:auto;padding:24px 0;display:flex;flex-direction:column;gap:28px;min-width:0}.dsweb-chat-empty{padding:20px;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:13px}",
- 			".dsweb-composer-root{flex:none;display:flex;flex-direction:column;align-items:center;padding:0 16px 12px;gap:6px}.dsweb-chat-composer{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width);--dsw-elevation-stroke-color:var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-panel,24px);background:var(--dsw-specific-input-major);box-shadow:var(--dsw-elevation-soft);font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));border:0;display:flex;flex-direction:column;gap:12px;padding-top:8px;min-width:0}",
-+			".dsweb-chat.dsweb-drop-active .dsweb-chat-composer{outline:2px dashed var(--dsw-alias-state-business-primary);outline-offset:-2px;background:var(--dsw-alias-state-business-tertiary,var(--dsw-specific-input-major))}",
- 			".dsweb-chat .dsweb-chat-input{box-sizing:border-box;width:calc(100% - 4px);min-height:36px;max-height:var(--dsh-composer-text-max-height);resize:none;overflow:auto;border:0;outline:0;border-radius:0;background:transparent;box-shadow:none;color:var(--dsw-alias-label-primary);caret-color:var(--dsw-alias-state-business-primary);font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere;padding:4px 8px 0 14px}.dsweb-chat .dsweb-chat-input:focus{outline:0;box-shadow:none}.dsweb-chat-input::placeholder{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary))}.dsweb-composer-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-width:0;padding:2px 8px 6px}.dsweb-composer-tools,.dsweb-composer-trailing{display:flex;align-items:center;gap:12px;min-width:0}.dsweb-composer-trailing{margin-left:auto;flex:none}.dsweb-composer-add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--dsw-specific-selector);color:var(--dsw-alias-label-primary);cursor:pointer}.dsweb-composer-add:hover{background:var(--dsw-alias-interactive-bg-hover-solid)}",
- 			".dsweb-composer-mode,.dsweb-model-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;max-width:100%;min-width:0;padding:0 6px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;font-weight:500;cursor:pointer}.dsweb-composer-mode:hover,.dsweb-model-trigger:hover{background:var(--dsw-alias-interactive-bg-hover)}.dsweb-composer-mode[aria-pressed='true']{color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-state-business-tertiary,var(--dsw-alias-interactive-bg-hover))}.dsweb-model-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-model-mode{color:var(--dsw-alias-label-tertiary)}.dsweb-model-trigger[aria-expanded='true']>svg:last-child{transform:rotate(180deg)}.dsweb-chat-send{display:grid;place-items:center;flex:none;width:34px;height:34px;transform:translateY(-2px);border:0;border-radius:999px;background:var(--dsw-alias-button-info-fill);color:#fff;cursor:pointer;transition:background-color .1s}.dsweb-chat-send:hover:not(:disabled){background:var(--dsw-alias-button-info-hover)}.dsweb-chat-send:disabled{opacity:.4;cursor:default}.dsweb-composer-mode:disabled,.dsweb-model-trigger:disabled{opacity:.5;cursor:default}.dsweb-composer-root button:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}.dsweb-chat-option-row{display:flex;align-items:center;justify-content:space-between;gap:28px;min-width:200px;padding:8px 10px;font-size:13px}.dsweb-chat-options{max-width:calc(100vw - 24px)}.dsweb-chat-recovery{width:100%;max-width:var(--dsh-composer-card-max-width)}",
- 			".dsweb-search-field{position:relative;min-width:0;flex:none;display:flex;align-items:center;color:var(--dsw-alias-label-tertiary)}.dsweb-search-field>svg{position:absolute;left:10px;pointer-events:none}.dsweb-search-field .dsweb-input{height:34px;padding:0 10px 0 32px;border:.5px solid var(--dsw-alias-border-l4,var(--dsw-alias-border-l2));background:var(--dsw-alias-bg-layer-1);font-size:12px}.dsweb-input:focus,.dsweb-textarea:focus{border-color:var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline:0;box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)) 18%,transparent)}",
-@@ -662,6 +667,7 @@ window.__ModuleLoader__.load({
+@@ -663,6 +669,7 @@ window.__ModuleLoader__.load({
  			".dsweb-settings .dsweb-card{padding:16px;gap:14px}.dsweb-settings-row{flex-direction:row;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.dsweb-settings-row>.dsweb-field{flex:1 1 260px}.dsweb-token-help{color:var(--dsw-alias-label-secondary);font-size:12px}.dsweb-token-help summary{cursor:pointer;padding:4px 0}.dsweb-token-help[open]{display:flex;flex-direction:column;gap:8px}.dsweb-settings .dsweb-footer{margin-top:4px}",
  			".dsweb-sidebar-list-head{padding:0 4px 0 8px;flex:none}.dsweb-sidebar-list-title{font-size:11px;font-weight:400;color:var(--dsw-alias-label-tertiary)}.dsweb-sidebar-list-icon{width:24px;height:24px;border:0;border-radius:var(--dsw-radius-sm,8px)}.dsweb-sidebar-list .dsweb-search-field{margin:0 4px}.dsweb-sidebar-list-body{padding:0 2px;overscroll-behavior:contain;scrollbar-gutter:auto;min-height:0}.dsweb-sidebar-list .dsweb-session{min-height:32px;height:32px;border:0;padding:0 8px 0 16px;gap:6px}.dsweb-sidebar-list .dsweb-session-main{flex-direction:row;align-items:center;gap:6px}.dsweb-sidebar-list .dsweb-session-title{flex:1;min-width:0;font-size:13px;line-height:20px}.dsweb-sidebar-list .dsweb-session-meta{flex:none;font-size:10px}.dsweb-sidebar-list .dsweb-session-meta .dsweb-tag,.dsweb-sidebar-list .dsweb-pinned{display:none}.dsweb-session[data-selected='1']{border-color:transparent;background:var(--dsw-alias-interactive-bg-hover)}.dsweb-sidebar-list .dsweb-notice{margin:0 4px}.dsweb-sidebar-list-token{padding:6px 8px}.dsweb-sidebar-list .dsweb-input{min-width:0}",
  			".dsweb-library{height:100%;min-height:0;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px}.dsweb-library-header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:.5px solid var(--dsw-alias-border-l2)}.dsweb-library-body{display:flex;flex:1;min-height:0;min-width:0}.dsweb-library-list{box-sizing:border-box;flex:0 0 280px;min-width:0;display:flex;flex-direction:column;gap:12px;padding:16px 12px;border-right:.5px solid var(--dsw-alias-border-l2)}.dsweb-library-list>.dsweb-card{background:transparent;border:0;padding:0;min-height:0}.dsweb-library-list .dsweb-session-list{max-height:none;flex:1;min-height:0}.dsweb-library-detail{box-sizing:border-box;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:auto;padding:20px 24px;gap:16px}.dsweb-library-detail>.dsweb-card{background:transparent;border:0;padding:0}.dsweb-library-detail .dsweb-preview{max-height:none;flex:1;min-height:0}.dsweb-library-actions{display:flex;flex-direction:column;gap:12px;flex:none;padding-top:14px;border-top:.5px solid var(--dsw-alias-border-l2)}.dsweb-library-connect{padding:24px;max-width:680px}.dsweb-library .dsweb-select{flex:1;min-width:0;max-width:100%}",
@@ -285,7 +320,7 @@ index fef5ba8..70702a3 100644
  			".dsweb-message-text[data-markdown='1']{white-space:normal}.dsweb-chat .dsweb-message{border:0;border-radius:0;background:transparent;padding:0;gap:10px;min-width:0}.dsweb-chat .dsweb-message[data-role='user']{align-self:flex-end;max-width:min(calc(var(--dsh-chat-content-width)*.702),82%);padding:10px 16px;border-radius:var(--dsw-radius-xl,20px);background:var(--dsw-specific-bubble)}.dsweb-chat .dsweb-message[data-role='assistant']{width:100%}.dsweb-chat .dsweb-message-text{font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px))}.dsweb-chat .dsweb-message-head{display:none}.dsweb-thinking{border:0;border-left:2px solid var(--dsw-alias-border-l2);border-radius:0;background:transparent;padding:0 10px}.dsweb-thinking summary{font-size:12px;line-height:22px}.dsweb-chat-token{flex:1;min-height:0;padding:24px;box-sizing:border-box;width:100%;max-width:680px;overflow:auto;display:flex;flex-direction:column;gap:8px}",
  			"@media(max-width:760px){.dsweb-library-body{flex-direction:column;overflow:auto}.dsweb-library-list{flex:none;border-right:0;border-bottom:.5px solid var(--dsw-alias-border-l2);max-height:32vh}.dsweb-library-detail{flex:1 0 auto;overflow:visible;padding:16px}.dsweb-library-header{padding:12px 16px}.dsweb-chat-head{padding:10px 14px}}@container(width<=560px){.dsweb-composer-tools,.dsweb-composer-trailing{gap:8px}.dsweb-model-mode{display:none}.dsweb-chat-thread{width:calc(100% - 32px)}}@container(width<=320px){.dsweb-composer-row{gap:6px}.dsweb-composer-tools,.dsweb-composer-trailing{gap:4px}.dsweb-model-trigger{max-width:120px}}",
  			"@media(max-width:900px){.dsweb-page{height:auto;min-height:100%;overflow:visible}.dsweb-page-body{flex-direction:column}.dsweb-page-left,.dsweb-page-right{flex:1 1 auto;overflow:visible}.dsweb-session-list-fill{max-height:min(38vh,320px)}.dsweb-preview-fill{max-height:min(46vh,420px)}.dsweb-workspaces{max-height:none}}",
-@@ -1092,6 +1098,74 @@ window.__ModuleLoader__.load({
+@@ -1093,6 +1100,74 @@ window.__ModuleLoader__.load({
  			}
  		}
  
@@ -360,7 +395,15 @@ index fef5ba8..70702a3 100644
  		// Temporary web conversation shown in the main area. The store holds only
  		// { sessionId, title } for a chat.deepseek.com conversation; no DSH session is
  		// created and no local log is written for it.
-@@ -3139,6 +3213,9 @@ window.__ModuleLoader__.load({
+@@ -2376,6 +2451,7 @@ window.__ModuleLoader__.load({
+ 			if (!report || !report.found) return null;
+ 			return R("div", { className: "dsweb-attachment-result" },
+ 				R("p", { className: "dsweb-hint" }, tt("attachmentsImported", { count: report.imported, total: report.found })),
++				report.imagesDowngraded ? R("p", { className: "dsweb-hint" }, tt("importPreviewOnly", { count: report.imagesDowngraded })) : null,
+ 				typeof report.workspaceSaved === "number" ? R("p", { className: "dsweb-hint" }, tt("workspaceFilesSaved", { count: report.workspaceSaved, total: report.found }),
+ 					report.workspaceDirectory ? R("br") : null, report.workspaceDirectory || null) : null,
+ 				(report.workspaceFailures || []).map(function (file, index) { return R(Notice, { key: "workspace-" + index, tone: "error",
+@@ -3140,6 +3216,9 @@ window.__ModuleLoader__.load({
  			var c = useClientController();
  			var queryState = React.useState("");
  			var query = queryState[0], setQuery = queryState[1];
@@ -370,7 +413,7 @@ index fef5ba8..70702a3 100644
  			var workspaceState = React.useState({ phase: "loading", items: [], error: "" });
  			var workspaces = workspaceState[0], setWorkspaces = workspaceState[1];
  			var target = useWorkspaceTarget(workspaces, c.currentSessionId);
-@@ -3156,15 +3233,38 @@ window.__ModuleLoader__.load({
+@@ -3157,15 +3236,38 @@ window.__ModuleLoader__.load({
  			var queryText = query.trim().toLocaleLowerCase();
  			var filtered = c.sessions.items.filter(function (item) { return !queryText || item.title.toLocaleLowerCase().indexOf(queryText) >= 0; });
  			var filteredController = Object.assign({}, c, { sessions: Object.assign({}, c.sessions, { items: filtered }) });
@@ -410,7 +453,7 @@ index fef5ba8..70702a3 100644
  					R("button", { type: "button", className: "dsweb-button", onClick: newWebConversation }, R(UiIcon, { name: "plus", size: 14 }), t("newWebChat")),
  					R("button", { type: "button", className: "dsweb-icon-button", title: t("webChatClose"),
  						"aria-label": t("webChatClose"), onClick: function () { selectMainPanel(null); } }, R(UiIcon, { name: "close" }))),
-@@ -3841,14 +3941,52 @@ window.__ModuleLoader__.load({
+@@ -3842,14 +3944,52 @@ window.__ModuleLoader__.load({
  			var prompt = promptState[0];
  			var setPrompt = promptState[1];
  
@@ -465,91 +508,94 @@ index fef5ba8..70702a3 100644
  			var sendingState = React.useState(false);
  			var sending = sendingState[0];
  			var setSending = sendingState[1];
-@@ -3872,6 +4010,8 @@ window.__ModuleLoader__.load({
- 			var fileInputRef = React.useRef(null);
- 			var filesState = React.useState([]), files = filesState[0], setFiles = filesState[1];
- 			var fileErrorState = React.useState(""), fileError = fileErrorState[0], setFileError = fileErrorState[1];
-+			var dragActiveState = React.useState(false), dragActive = dragActiveState[0], setDragActive = dragActiveState[1];
-+			var dragDepthRef = React.useRef(0);
+@@ -3877,22 +4017,6 @@ window.__ModuleLoader__.load({
+ 			var dragDepthRef = React.useRef(0);
  			var filesRef = React.useRef([]), uploadEpoch = React.useRef(0), fileSequence = React.useRef(0);
  			var uploadControllers = React.useRef(new Map()), uploadQueue = React.useRef(Promise.resolve());
+-			var uploadCapability = c.statusData?.capabilities?.upload;
+-			var hostVersion = String(c.statusData?.version || "").split(/[.-]/).map(Number);
+-			var uploadSupported = typeof uploadCapability === "boolean" ? uploadCapability :
+-				hostVersion[0] > 0 || hostVersion[0] === 0 && hostVersion[1] >= 4;
+-			var attachmentInputReady = c.hasToken && !sending && phase === "ready" && !recoveryRequired && branchView.valid;
+-			var canAcceptFileDrop = attachmentInputReady && uploadSupported && files.length < 10;
+-			function clearAttachmentDrag() {
+-				dragDepthRef.current = 0;
+-				setDragActive(false);
+-			}
+-			function checkAttachmentInput() {
+-				if (!attachmentInputReady || sendAbortRef.current) return false;
+-				if (uploadSupported) return true;
+-				setFileError(tt("hostRestartRequired"));
+-				return false;
+-			}
  			function updateFiles(transform) {
-@@ -3925,6 +4065,40 @@ window.__ModuleLoader__.load({
- 				updateFiles(function (list) { return list.concat(added); });
- 				queueUploads(added);
+ 				var next = transform(filesRef.current);
+ 				filesRef.current = next;
+@@ -3905,7 +4029,6 @@ window.__ModuleLoader__.load({
  			}
-+
-+			function dragHasFiles(event) {
-+				var transfer = event && event.dataTransfer;
-+				if (!transfer || !transfer.types) return false;
-+				try { return Array.prototype.indexOf.call(transfer.types, "Files") >= 0; } catch (error) { return false; }
-+			}
+ 			React.useEffect(function () {
+ 				cancelUploads();
+-				clearAttachmentDrag();
+ 				updateFiles(function () { return []; });
+ 				setFileError("");
+ 				setPrompt("");
+@@ -3937,7 +4060,6 @@ window.__ModuleLoader__.load({
+ 				});
+ 			}
+ 			function addFiles(selected) {
+-				if (!selected?.length || !checkAttachmentInput()) return;
+ 				var picked = Array.from(selected || []), available = 10 - filesRef.current.length;
+ 				var valid = picked.filter(function (file) { return file.size > 0 && file.size <= 20 * 1024 * 1024; }).slice(0, Math.max(0, available));
+ 				setFileError(valid.length !== picked.length ? tt("fileLimit") : "");
+@@ -3952,17 +4074,19 @@ window.__ModuleLoader__.load({
+ 				if (!transfer || !transfer.types) return false;
+ 				try { return Array.prototype.indexOf.call(transfer.types, "Files") >= 0; } catch (error) { return false; }
+ 			}
 +			function dragCanDrop() {
 +				return Boolean(c.hasToken) && !sending && phase === "ready" && !recoveryRequired;
 +			}
-+			function onChatDragEnter(event) {
-+				if (!dragHasFiles(event)) return;
-+				event.preventDefault();
-+				dragDepthRef.current += 1;
-+				setDragActive(true);
-+			}
-+			function onChatDragOver(event) {
-+				if (!dragHasFiles(event)) return;
-+				event.preventDefault();
+ 			function onChatDragEnter(event) {
+ 				if (!dragHasFiles(event)) return;
+ 				event.preventDefault();
+-				if (attachmentInputReady && !uploadSupported) checkAttachmentInput();
+ 				dragDepthRef.current += 1;
+ 				setDragActive(true);
+ 			}
+ 			function onChatDragOver(event) {
+ 				if (!dragHasFiles(event)) return;
+ 				event.preventDefault();
+-				try { event.dataTransfer.dropEffect = canAcceptFileDrop ? "copy" : "none"; } catch (error) { /* ignore */ }
 +				try { event.dataTransfer.dropEffect = dragCanDrop() ? "copy" : "none"; } catch (error) { /* ignore */ }
-+			}
-+			function onChatDragLeave(event) {
-+				if (!dragHasFiles(event)) return;
-+				dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-+				if (!dragDepthRef.current) setDragActive(false);
-+			}
-+			function onChatDrop(event) {
-+				if (!dragHasFiles(event)) return;
-+				event.preventDefault();
-+				event.stopPropagation();
+ 			}
+ 			function onChatDragLeave(event) {
+ 				if (!dragHasFiles(event)) return;
+@@ -3973,7 +4097,9 @@ window.__ModuleLoader__.load({
+ 				if (!dragHasFiles(event)) return;
+ 				event.preventDefault();
+ 				event.stopPropagation();
+-				clearAttachmentDrag();
 +				dragDepthRef.current = 0;
 +				setDragActive(false);
 +				if (!dragCanDrop()) return;
-+				addFiles(event.dataTransfer.files);
-+			}
+ 				addFiles(event.dataTransfer.files);
+ 			}
  			function removeFile(key) {
- 				var controller = uploadControllers.current.get(key);
- 				if (controller) controller.abort();
-@@ -4232,6 +4406,32 @@ window.__ModuleLoader__.load({
- 									setPrompt(event.target.value);
- 									setSendError("");
- 								},
-+								onPaste: function (event) {
-+									var data = event.clipboardData;
-+									if (!data) return;
-+									var text = "";
-+									try { text = data.getData("text/plain") || ""; } catch (error) { text = ""; }
-+									var pasted = [];
-+									try {
-+										if (data.files && data.files.length) {
-+											Array.prototype.forEach.call(data.files, function (file) { if (file) pasted.push(file); });
-+										} else if (data.items) {
-+											Array.prototype.forEach.call(data.items, function (item) {
-+												if (item && item.kind === "file") {
-+													var file = item.getAsFile();
-+													if (file) pasted.push(file);
-+												}
-+											});
-+										}
-+									} catch (error) { /* ignore */ }
-+									// Any file type can be attached: images, PDFs, documents, archives.
-+									var attachments = pasted.filter(function (file) { return Boolean(file) && file.size > 0; });
-+									// Only take over when the clipboard carries files and no text, so copying
-+									// rich text that happens to embed an image still pastes as text.
-+									if (!attachments.length || text.trim()) return;
-+									event.preventDefault();
-+									addFiles(attachments);
-+								},
- 								onKeyDown: function (event) {
- 									if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
- 									event.preventDefault();
-@@ -4251,10 +4451,10 @@ window.__ModuleLoader__.load({
- 											if (fileInputRef.current) fileInputRef.current.click();
+@@ -4317,17 +4443,21 @@ window.__ModuleLoader__.load({
+ 							}),
+ 							R("div", { className: "dsweb-composer-row" },
+ 								R("div", { className: "dsweb-composer-tools" },
+-									R("input", { ref: fileInputRef, type: "file", multiple: true, hidden: true, disabled: !attachmentInputReady,
++									R("input", { ref: fileInputRef, type: "file", multiple: true, hidden: true, disabled: sending || phase !== "ready" || recoveryRequired,
+ 										onChange: function (event) { addFiles(event.target.files); event.target.value = ""; } }),
+-									R("button", { type: "button", className: "dsweb-composer-add", title: tt("uploadFiles"), disabled: !attachmentInputReady,
++									R("button", { type: "button", className: "dsweb-composer-add", title: tt("uploadFiles"), disabled: sending || phase !== "ready" || recoveryRequired,
+ 										"aria-label": tt("uploadFiles"), onClick: function () {
+-											if (checkAttachmentInput() && fileInputRef.current) fileInputRef.current.click();
++											var data = c.statusData || {}, version = String(data.version || "").split(/[.-]/).map(Number);
++											if (!(data.capabilities && data.capabilities.upload) && !(version[0] > 0 || version[0] === 0 && version[1] >= 4)) {
++												setFileError(tt("hostRestartRequired")); return;
++											}
++											if (fileInputRef.current) fileInputRef.current.click();
  										} }, R(UiIcon, { name: "plus", size: 14 })),
  									R("button", { type: "button", className: "dsweb-composer-mode", "aria-pressed": thinking, disabled: sending,
 -										"aria-label": tt("continueThinking"), title: tt("continueThinking"), onClick: function () { setThinking(!thinking); } },
@@ -561,20 +607,16 @@ index fef5ba8..70702a3 100644
  										R(UiIcon, { name: "globe", size: 16 }), R("span", { className: "dsweb-mode-label" }, tt("continueSearch")))),
  								R("div", { className: "dsweb-composer-trailing" },
  									R("span", { className: "dsweb-model-label" }, "DeepSeek"),
-@@ -4268,7 +4468,11 @@ window.__ModuleLoader__.load({
- 
+@@ -4342,7 +4472,7 @@ window.__ModuleLoader__.load({
  			return R(
  				"div",
--				{ className: "dsweb-chat", ref: rootRef, role: "region", "aria-label": tt("webChatBadge") },
-+				{
+ 				{
+-					className: "dsweb-chat" + (dragActive && canAcceptFileDrop ? " dsweb-drop-active" : ""), ref: rootRef, role: "region",
 +					className: "dsweb-chat" + (dragActive ? " dsweb-drop-active" : ""), ref: rootRef, role: "region",
-+					"aria-label": tt("webChatBadge"),
-+					onDragEnter: onChatDragEnter, onDragOver: onChatDragOver, onDragLeave: onChatDragLeave, onDrop: onChatDrop
-+				},
- 				R(
- 					"header",
- 					{ className: "dsweb-chat-head" },
-@@ -4429,24 +4633,27 @@ window.__ModuleLoader__.load({
+ 					"aria-label": tt("webChatBadge"),
+ 					onDragEnter: onChatDragEnter, onDragOver: onChatDragOver, onDragLeave: onChatDragLeave, onDrop: onChatDrop
+ 				},
+@@ -4506,24 +4636,27 @@ window.__ModuleLoader__.load({
  					console.error("[dsh-deepseek-web] settings section:", error);
  				}
  
@@ -609,8 +651,48 @@ index fef5ba8..70702a3 100644
  				}
  
  				// Browsing/importing lives in a normal keyed main panel.
+diff --git a/lib/deepseek-api.js b/lib/deepseek-api.js
+index 2c32fe1..f15f0db 100644
+--- a/lib/deepseek-api.js
++++ b/lib/deepseek-api.js
+@@ -1348,10 +1348,22 @@ export class DeepSeekWebApi {
+     if (['PENDING', 'PROCESSING', 'UPLOADING', 'PARSING'].includes(String(file.status).toUpperCase()) || !(file.signed_path || file.signedPath)) {
+       throw new DeepSeekWebError('图片预览正在准备，请稍后重试。', { code: 'image_pending', status: 503 });
+     }
+-    const url = (original ? signedFileUrl : signedImageUrl)(file.signed_path || file.signedPath);
+-    const limit = original ? MAX_FILE_BYTES : MAX_IMAGE_BYTES;
+-    const tooLarge = () => new DeepSeekWebError(original ? '图片原文件超过导入上限 20 MiB。' : '图片预览超过 12 MiB。', { code: 'too_large', status: 413 });
+-    const handle = await this.#fetchOnce(url, { method: 'GET', headers: { Accept: 'image/*' }, credentials: 'omit', redirect: 'manual' }, { signal, timeoutMs: 30000 });
++    const signedPath = file.signed_path || file.signedPath;
++    const previewUrl = signedImageUrl(signedPath);
++    const request = { method: 'GET', headers: { Accept: 'image/*' }, credentials: 'omit', redirect: 'manual' };
++    let handle = await this.#fetchOnce(original ? signedFileUrl(signedPath) : previewUrl, request, { signal, timeoutMs: 30000 });
++    // The file service stopped serving image originals through `ty=r` (HTTP 400),
++    // so an import falls back to the preview transform instead of losing the picture.
++    // Transient answers (403/404/429/5xx) keep the existing retry path.
++    let downgraded = false;
++    if (original && handle.res.status === 400) {
++      await handle.res.body?.cancel().catch(() => {});
++      handle.dispose();
++      handle = await this.#fetchOnce(previewUrl, request, { signal, timeoutMs: 30000 });
++      downgraded = handle.res.status === 200;
++    }
++    const limit = original && !downgraded ? MAX_FILE_BYTES : MAX_IMAGE_BYTES;
++    const tooLarge = () => new DeepSeekWebError(original && !downgraded ? '图片原文件超过导入上限 20 MiB。' : '图片预览超过 12 MiB。', { code: 'too_large', status: 413 });
+     let reader;
+     try {
+       if (handle.res.status !== 200) throw new DeepSeekWebError(`图片预览读取失败（HTTP ${handle.res.status}）。`, {
+@@ -1371,7 +1383,7 @@ export class DeepSeekWebApi {
+       const bytes = Buffer.concat(chunks);
+       const contentType = sniffImageType(bytes);
+       if (!contentType) throw new DeepSeekWebError('图片预览不是支持的图片格式。', { code: 'bad_response' });
+-      return { bytes, contentType };
++      return { bytes, contentType, downgraded };
+     } catch (error) { this.#fileCache.delete(fileId); throw error instanceof DeepSeekWebError ? error : this.#convertError(error, handle, signal); }
+     finally { if (reader) await reader.cancel().catch(() => {}); handle.dispose(); }
+   }
 diff --git a/lib/index.js b/lib/index.js
-index d1565ed..f97e9d6 100644
+index d2a8c00..0d27091 100644
 --- a/lib/index.js
 +++ b/lib/index.js
 @@ -9,6 +9,9 @@
@@ -627,8 +709,8 @@ index d1565ed..f97e9d6 100644
    "sessionPersistence"
  ];
  
--const VERSION = "0.4.5";
-+const VERSION = "0.4.5-fork.4";
+-const VERSION = "0.4.6";
++const VERSION = "0.4.5-fork.5";
  const CAPABILITIES = { upload: true, imagePreview: true, newConversation: true, streaming: true, processSteps: true, regenerate: true, branches: true, importAttachments: true, workspaceFiles: true, deleteConversation: true, renameConversation: true };
  const TOKEN_REF = "DEEPSEEK_WEB_TOKEN";
  const MAX_BODY_BYTES = 256 * 1024;
@@ -677,7 +759,29 @@ index d1565ed..f97e9d6 100644
    if (!id || id.length > 200 || /[\u0000-\u001f\u007f]/.test(id)) {
      throw errorWithStatus(400, "invalid sessionId");
    }
-@@ -1056,11 +1093,39 @@ export function apply(ctx) {
+@@ -543,7 +580,7 @@ export function apply(ctx) {
+   async function importTranscriptAttachments(transcript, api, signal, { cwd, sessionId } = {}) {
+     let store;
+     try { store = typeof ctx.get === "function" ? ctx.get("attachments") : ctx.attachments; } catch (_) { /* Optional on old deployments. */ }
+-    const cache = new Map(), report = { found: 0, imported: 0, images: 0, files: 0, failures: [] };
++    const cache = new Map(), report = { found: 0, imported: 0, images: 0, files: 0, imagesDowngraded: 0, failures: [] };
+     if (transcript.some((item) => item.files?.length)) Object.assign(report, {
+       workspaceSaved: 0, workspaceDirectory: "", workspaceFailures: [], workspaceFiles: []
+     });
+@@ -571,6 +608,12 @@ export function apply(ctx) {
+             };
+             if (file.isImage) {
+               image = await api.getImage(file.id, { signal, original: true });
++              // The web file service refuses image originals now; the preview bytes are
++              // still imported, but the user should know it is not the original file.
++              if (image.downgraded) {
++                report.imagesDowngraded++;
++                report.imagesDowngradedNames = (report.imagesDowngradedNames || []).concat(name);
++              }
+               stage = await stageAttachment(countBytes([image.bytes]), { signal });
+             } else {
+               const source = await api.openFile(file.id, { signal });
+@@ -1056,11 +1099,39 @@ export function apply(ctx) {
        tokenHint: tokenHint(token),
        tokenSource: source,
        baseUrl: baseUrl(),
@@ -719,7 +823,7 @@ index d1565ed..f97e9d6 100644
    async function handleToken(req, res) {
      if (!methodAllowed(req, res, "POST")) return;
      assertLocalRequest(req);
-@@ -1401,6 +1466,7 @@ export function apply(ctx) {
+@@ -1401,6 +1472,7 @@ export function apply(ctx) {
          return;
        }
        if (subpath === "/status") return await handleStatus(req, res);
@@ -728,14 +832,14 @@ index d1565ed..f97e9d6 100644
        if (subpath === "/sessions") return await handleSessions(req, res, url);
        if (subpath === "/history") return await handleHistory(req, res, url);
 diff --git a/package.json b/package.json
-index afcef71..9811f8e 100644
+index 0897602..60d8f1d 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,6 +1,6 @@
  {
    "name": "@xueray/dsh-web-bridge",
--  "version": "0.4.5",
-+  "version": "0.4.5-fork.4",
+-  "version": "0.4.6",
++  "version": "0.4.5-fork.5",
    "type": "module",
    "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
    "author": {
@@ -795,4 +899,27 @@ index ecaf9c5..58fffec 100644
 +    body: JSON.stringify({ composerMode: 'off' }),
 +  });
 +  assert.equal(invalid.status, 400);
++});
+diff --git a/test/images.test.js b/test/images.test.js
+index 8827cbd..52c0797 100644
+--- a/test/images.test.js
++++ b/test/images.test.js
+@@ -129,3 +129,18 @@ test('original file downloads refuse redirects, large declared and large chunked
+     }, error => ['too_large', 'file_unavailable'].includes(error.code));
+   }
+ });
++
++test('image original falls back to the preview transform when ty=r is refused', async () => {
++  const calls = [];
++  const api = new DeepSeekWebApi({ token: 'test', fetchImpl: async (url) => {
++    calls.push(String(url));
++    if (calls.length === 1) return envelope({ files: [{ id: 'file-photo', signed_path: '/file/picture?signature=example' }] });
++    if (new URL(String(url)).searchParams.get('ty') === 'r') return new Response('', { status: 400 });
++    return new Response(png, { headers: { 'content-type': 'application/octet-stream' } });
++  } });
++  const image = await api.getImage('file-photo', { original: true });
++  assert.equal(image.downgraded, true);
++  assert.deepEqual(image.bytes, png);
++  assert.equal(new URL(calls[1]).searchParams.get('ty'), 'r');
++  assert.equal(new URL(calls[2]).searchParams.get('ty'), 'p');
 +});
