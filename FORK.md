@@ -1,6 +1,6 @@
 # 修改说明（fork）
 
-本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
+本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5（本仓库的粘贴/拖放改动已由上游 0.4.6 收录）。
 
 - 原作者：SaiSenBox（<https://github.com/SaiSenBox>），上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>
 - 本版本的改动**未经原作者审核**，不代表原作者意见，也不是 DeepSeek 官方产品。
@@ -9,15 +9,16 @@
 
 ## 本版本改了什么
 
-代码改动只在 `lib/client.js` 的网页对话面板（`WebChatPanel`）内，共三处：
+代码改动集中在 `lib/client.js` 的网页对话面板（`WebChatPanel`）与 `lib/index.js` 的导入、偏好路由：
 
 1. **粘贴附件**：输入框新增 `onPaste`。从 `clipboardData.files` / `items` 取出文件交给原有的 `addFiles()`；仅当剪贴板没有文字时接管，复制富文本仍按文本粘贴。
 2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
-3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
+3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.6`。
 4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
 5. **侧栏入口位置**：槽位从 `sidebar.footer.action` 改为 `sidebar.panellist`（id `deepseek-web`），与「插件」「插件市场」同组；点击在主区域打开 `deepseek-web` 面板，不再在侧栏内联展开、不再压住工作区会话。
 6. **会话页左栏可收起**：网页端会话页标题栏加了折叠按钮，收起后预览/导入区域占满宽度；状态写 `localStorage`（`dsh-deepseek-web.library-list`）并同步到 `/deepseek-web/preferences` 的 `listCollapsed`。
 7. **图片导入回退**：网页端文件服务不再为图片提供原图（`ty=r` 返回 HTTP 400），`getImage(original: true)` 在 400 时改用 `ty=p` 预览图并标记 `downgraded`；导入结果会提示「N 张图片的原文件不可读，已改用预览图」。
+8. **导入会话的 id 形态**：`createImportedSession` 改用 DSH 自己的 `session-<uuid>`，不再加 `deepseek-web-` 前缀——否则「会话管理」等按 `session-*` 校验的工具会报 `"…" is not a Session id`，删不掉这些导入会话。
 
 两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 
@@ -46,7 +47,8 @@ git diff upstream/main HEAD -- . ':(exclude)assets/promo'
 | `lib/deepseek-api.js` | `getImage` | 原图 400 时回退到预览图，返回 `downgraded` |
 | `lib/index.js` | 导入附件 | 记录 `imagesDowngraded`，供结果面板提示 |
 | `lib/client.js` | 样式表 | 新增拖放高亮规则 |
-| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
+| `lib/index.js` | `createImportedSession` | 会话 id 由 `deepseek-web-<uuid>` 改为 DSH 的 `session-<uuid>` |
+| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.6` |
 | `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
 | `assets/promo/` | — | 删除上游宣传视频与封面（约 5.9 MB，与功能无关，且大文件上传易被网络重置） |
 

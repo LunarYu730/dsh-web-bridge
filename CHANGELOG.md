@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.4.5-fork.6
+
+- 修复导入后的会话在「会话管理」里删不掉：`createImportedSession` 之前用 `deepseek-web-<uuid>` 当会话 id，而 DSH 自己的 id 形态是 `session-<uuid>`（`@kissblank/dsh-session-manager` 等工具按这个形状校验，会报 `"…" is not a Session id`）。现在按 DSH 的约定生成 id，导入的会话能像普通会话一样归档、删除；启动时自动 attach 老会话的兜底只保留给历史数据。
+- 升级到本版本后需要**完全退出 DSH（含托盘）**再打开；旧版本留下的 `deepseek-web-*` 会话不受影响，可用 `tools/purge-web-sessions` 清理。
+
 ## 0.4.5-fork.5
 
 - 修复图片附件导入失败：网页端文件服务不再为图片提供原图（`ty=r` 返回 HTTP 400，`ty=p` 预览仍可用），导入时自动回退到预览图继续，不再整条附件丢失；导入结果会提示「N 张图片的原文件不可读，已改用预览图」。
