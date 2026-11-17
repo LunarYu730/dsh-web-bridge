@@ -4,7 +4,7 @@
 | --- | --- | --- | --- |
 | [#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1) | feat: 网页对话输入框支持粘贴与拖放附件 | **已合并**（上游 0.4.6 已包含） | 1 文件 `lib/client.js`，`+68 −1` |
 | [#2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2) | feat: 记住思考/联网开关、侧栏入口挪进面板列表、会话列表可收起 | 开放中，CI 通过，`mergeable_state=clean` | 3 文件，`+263 −16` |
-| [#3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3) | fix: 导入会话改用 Host 形状的会话 id | 开放中 | 2 文件，`+11 −4` |
+| [#3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3) | fix: 导入会话改用 Host 形状的会话 id | 开放中，CI 通过（4/4），`mergeable_state=clean` | 2 文件，`+11 −4` |
 
 三条 PR 都来自 fork `hexiangyu0730-web/dsh-web-bridge-fork`（账号已更名为 `LunarYu730`）：`#1` 基于上游 `b5531f2`（0.4.5），`#2`、`#3` 基于 `951cf02`（0.4.6）。
 
@@ -61,6 +61,6 @@
 - 基线：`951cf02`（上游 0.4.6）
 - 内容：`createImportedSession` 之前用 `deepseek-web-<uuid>` 当会话 id；Host 接受，但按 `session-*` 校验的工具（如 `@kissblank/dsh-session-manager` 的删除路由）会报 `"…" is not a Session id`，导入的会话因此在「会话管理」里删不掉。改为与 Host 一致的 `session-<uuid>`，启动时 attach 老会话的兜底只服务历史前缀。
 - 改动：2 个文件、`+11 −4`（`lib/index.js` 两处 id 生成 + 注释，测试断言 id 形状）。
-- 状态：开放中，等待 CI 与维护者审核。
+- 状态：开放中，CI 通过（4/4，`mergeable_state=clean`）。
 - 分支：`LunarYu730:pr-session-id`。
 

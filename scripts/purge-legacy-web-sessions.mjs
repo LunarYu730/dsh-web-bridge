@@ -42,19 +42,29 @@ async function findLegacyDirectories() {
 
 async function main() {
   const found = await findLegacyDirectories();
-  const ids = [...found.keys()].sort();
+  const workspace = JSON.parse(await readFile(workspaceFile, "utf8"));
+  const global = workspace.global || {};
+  // A previous run may already have removed the directories while the Host wrote
+  // the membership back; keep pruning those stale ids so re-running converges.
+  const wanted = new Set(found.keys());
+  const legacy = (id) => typeof id === "string" && id.startsWith(LEGACY);
+  for (const id of [...(global.archivedSessionIds || []), ...(global.pinnedSessionIds || [])]) {
+    if (legacy(id)) wanted.add(id);
+  }
+  for (const record of Object.values(workspace.tables?.workspaces || {})) {
+    for (const id of record.sessionIds || []) if (legacy(id)) wanted.add(id);
+  }
+  const ids = [...wanted].sort();
   console.log(`legacy Sessions: ${ids.length}`);
   for (const id of ids) console.log(`  ${id}`);
   if (ids.length === 0) return;
 
-  const workspace = JSON.parse(await readFile(workspaceFile, "utf8"));
-  const wanted = new Set(ids);
-  const global = workspace.global || {};
   let membershipsBefore = 0;
   for (const record of Object.values(workspace.tables?.workspaces || {})) {
     for (const id of record.sessionIds || []) if (wanted.has(id)) membershipsBefore += 1;
   }
   const archivedBefore = (global.archivedSessionIds || []).length;
+  if (found.size === 0) console.log(`(the Session directories are already gone; pruning ${ids.length} stale ids)`);
 
   if (!DRY) {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");

@@ -42,7 +42,7 @@ index 1db8f31..679cb44 100644
  
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..93d9acb
+index 0000000..9de504e
 --- /dev/null
 +++ b/FORK.md
 @@ -0,0 +1,118 @@
@@ -139,7 +139,7 @@ index 0000000..93d9acb
 +- 已提交上游：
 +  - **[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**（粘贴/拖放，`+68 −1`）— **已合并**，上游 0.4.6 已包含；
 +  - **[PR #2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2)**（开关记忆、侧栏入口、列表收起，3 文件 `+263 −16`）— 开放中，CI 通过；
-+  - **[PR #3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3)**（导入会话使用 `session-<uuid>`，2 文件 `+11 −4`）— 开放中；
++  - **[PR #3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3)**（导入会话使用 `session-<uuid>`，2 文件 `+11 −4`）— 开放中，CI 通过；
 +  - 三者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
 +- `upstream` 保留指向原作者仓库，用于取上游基线
 +- CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
@@ -237,7 +237,7 @@ index 57d4c9e..f470ed4 100644
  装好或更新后，**完全退出 DSH，包括托盘进程，再重新打开**。只刷新页面不会更新 Host 接口。
 diff --git a/docs/upstream-pr.md b/docs/upstream-pr.md
 new file mode 100644
-index 0000000..615d2de
+index 0000000..986ce04
 --- /dev/null
 +++ b/docs/upstream-pr.md
 @@ -0,0 +1,66 @@
@@ -247,7 +247,7 @@ index 0000000..615d2de
 +| --- | --- | --- | --- |
 +| [#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1) | feat: 网页对话输入框支持粘贴与拖放附件 | **已合并**（上游 0.4.6 已包含） | 1 文件 `lib/client.js`，`+68 −1` |
 +| [#2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2) | feat: 记住思考/联网开关、侧栏入口挪进面板列表、会话列表可收起 | 开放中，CI 通过，`mergeable_state=clean` | 3 文件，`+263 −16` |
-+| [#3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3) | fix: 导入会话改用 Host 形状的会话 id | 开放中 | 2 文件，`+11 −4` |
++| [#3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3) | fix: 导入会话改用 Host 形状的会话 id | 开放中，CI 通过（4/4），`mergeable_state=clean` | 2 文件，`+11 −4` |
 +
 +三条 PR 都来自 fork `hexiangyu0730-web/dsh-web-bridge-fork`（账号已更名为 `LunarYu730`）：`#1` 基于上游 `b5531f2`（0.4.5），`#2`、`#3` 基于 `951cf02`（0.4.6）。
 +
@@ -304,7 +304,7 @@ index 0000000..615d2de
 +- 基线：`951cf02`（上游 0.4.6）
 +- 内容：`createImportedSession` 之前用 `deepseek-web-<uuid>` 当会话 id；Host 接受，但按 `session-*` 校验的工具（如 `@kissblank/dsh-session-manager` 的删除路由）会报 `"…" is not a Session id`，导入的会话因此在「会话管理」里删不掉。改为与 Host 一致的 `session-<uuid>`，启动时 attach 老会话的兜底只服务历史前缀。
 +- 改动：2 个文件、`+11 −4`（`lib/index.js` 两处 id 生成 + 注释，测试断言 id 形状）。
-+- 状态：开放中，等待 CI 与维护者审核。
++- 状态：开放中，CI 通过（4/4，`mergeable_state=clean`）。
 +- 分支：`LunarYu730:pr-session-id`。
 +
 diff --git a/lib/client.js b/lib/client.js
@@ -926,6 +926,124 @@ index 0897602..48991c6 100644
      "docs",
      "assets/screenshots",
      "screenshots.json"
+diff --git a/scripts/purge-legacy-web-sessions.mjs b/scripts/purge-legacy-web-sessions.mjs
+new file mode 100644
+index 0000000..c948a33
+--- /dev/null
++++ b/scripts/purge-legacy-web-sessions.mjs
+@@ -0,0 +1,112 @@
++// Remove the imported Sessions that 0.4.5-fork.5 and earlier created with the
++// legacy `deepseek-web-<uuid>` id shape.
++//
++// The Host accepts those ids, but tooling that validates the `session-*` shape
++// (e.g. @kissblank/dsh-session-manager's delete route) refuses them with
++// `"…" is not a Session id`, so those rows cannot be deleted from the UI.
++// 0.4.5-fork.6 and later mint `session-<uuid>` instead; this script clears what
++// the old code left behind.
++//
++// Close DSH first (including the tray process): the script rewrites
++// `<DSH_HOME>/storages/workspace.json`, which the running Host would otherwise
++// write back from memory. It keeps a timestamped backup next to that file.
++//
++// Usage: node scripts/purge-legacy-web-sessions.mjs [--dry-run]
++import { readdir, readFile, rm, writeFile } from "node:fs/promises";
++import { join } from "node:path";
++import { homedir } from "node:os";
++
++const DSH_HOME = process.env.DSH_HOME || join(homedir(), ".dsh");
++const DRY = process.argv.includes("--dry-run");
++const sessionsRoot = join(DSH_HOME, "sessions");
++const workspaceFile = join(DSH_HOME, "storages", "workspace.json");
++const cacheRoot = join(DSH_HOME, "storages", "session_projcache", "sessions");
++const LEGACY = "deepseek-web-";
++
++/** Every existing Session directory whose id uses the legacy shape. */
++async function findLegacyDirectories() {
++  const byId = new Map();
++  const projects = await readdir(sessionsRoot, { withFileTypes: true }).catch(() => []);
++  for (const project of projects) {
++    if (!project.isDirectory()) continue;
++    const dir = join(sessionsRoot, project.name);
++    for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
++      if (!entry.isDirectory() || !entry.name.startsWith(LEGACY)) continue;
++      const dirs = byId.get(entry.name) || [];
++      dirs.push(join(dir, entry.name));
++      byId.set(entry.name, dirs);
++    }
++  }
++  return byId;
++}
++
++async function main() {
++  const found = await findLegacyDirectories();
++  const workspace = JSON.parse(await readFile(workspaceFile, "utf8"));
++  const global = workspace.global || {};
++  // A previous run may already have removed the directories while the Host wrote
++  // the membership back; keep pruning those stale ids so re-running converges.
++  const wanted = new Set(found.keys());
++  const legacy = (id) => typeof id === "string" && id.startsWith(LEGACY);
++  for (const id of [...(global.archivedSessionIds || []), ...(global.pinnedSessionIds || [])]) {
++    if (legacy(id)) wanted.add(id);
++  }
++  for (const record of Object.values(workspace.tables?.workspaces || {})) {
++    for (const id of record.sessionIds || []) if (legacy(id)) wanted.add(id);
++  }
++  const ids = [...wanted].sort();
++  console.log(`legacy Sessions: ${ids.length}`);
++  for (const id of ids) console.log(`  ${id}`);
++  if (ids.length === 0) return;
++
++  let membershipsBefore = 0;
++  for (const record of Object.values(workspace.tables?.workspaces || {})) {
++    for (const id of record.sessionIds || []) if (wanted.has(id)) membershipsBefore += 1;
++  }
++  const archivedBefore = (global.archivedSessionIds || []).length;
++  if (found.size === 0) console.log(`(the Session directories are already gone; pruning ${ids.length} stale ids)`);
++
++  if (!DRY) {
++    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
++    await writeFile(`${workspaceFile}.bak-${stamp}`, JSON.stringify(workspace, null, 2));
++  }
++
++  const removed = { directories: [], cacheFiles: 0, failures: [] };
++  for (const dirs of found.values()) {
++    for (const dir of dirs) {
++      if (DRY) { removed.directories.push(dir); continue; }
++      try {
++        await rm(dir, { recursive: true, force: true });
++        removed.directories.push(dir);
++      } catch (error) {
++        removed.failures.push(`${dir}: ${error.message}`);
++      }
++    }
++  }
++  for (const id of ids) {
++    if (DRY) { removed.cacheFiles += 1; continue; }
++    try {
++      await rm(join(cacheRoot, `${id}.json`), { force: true });
++      removed.cacheFiles += 1;
++    } catch (error) {
++      removed.failures.push(`projection cache ${id}: ${error.message}`);
++    }
++  }
++
++  global.archivedSessionIds = (global.archivedSessionIds || []).filter((id) => !wanted.has(id));
++  global.pinnedSessionIds = (global.pinnedSessionIds || []).filter((id) => !wanted.has(id));
++  for (const record of Object.values(workspace.tables?.workspaces || {})) {
++    if (Array.isArray(record.sessionIds)) record.sessionIds = record.sessionIds.filter((id) => !wanted.has(id));
++  }
++  if (!DRY) await writeFile(workspaceFile, JSON.stringify(workspace, null, 2));
++
++  console.log(JSON.stringify({
++    dryRun: DRY,
++    sessions: ids.length,
++    membershipsBefore,
++    archivedBefore,
++    ...removed,
++  }, null, 2));
++}
++
++await main();
 diff --git a/test/host-routes.test.js b/test/host-routes.test.js
 index ecaf9c5..9daafaf 100644
 --- a/test/host-routes.test.js

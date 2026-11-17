@@ -91,7 +91,7 @@ node scripts/purge-legacy-web-sessions.mjs             # 实际删除，先备�
 - 已提交上游：
   - **[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**（粘贴/拖放，`+68 −1`）— **已合并**，上游 0.4.6 已包含；
   - **[PR #2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2)**（开关记忆、侧栏入口、列表收起，3 文件 `+263 −16`）— 开放中，CI 通过；
-  - **[PR #3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3)**（导入会话使用 `session-<uuid>`，2 文件 `+11 −4`）— 开放中；
+  - **[PR #3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3)**（导入会话使用 `session-<uuid>`，2 文件 `+11 −4`）— 开放中，CI 通过；
   - 三者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
 - `upstream` 保留指向原作者仓库，用于取上游基线
 - CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
