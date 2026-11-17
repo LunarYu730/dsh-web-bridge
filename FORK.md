@@ -74,13 +74,25 @@ dsh plugin --profile desktop add ./dsh-web-bridge
 dsh plugin --profile desktop remove @xueray/dsh-web-bridge
 ```
 
+### 从 0.4.5-fork.5 及更早版本升级
+
+更早的版本把导入会话的 id 写成 `deepseek-web-<uuid>`，Host 能打开，但按 `session-*` 校验的工具（如「会话管理」插件的删除路由）会报 `"…" is not a Session id`，删不掉。0.4.5-fork.6 起改为 Host 自己的 `session-<uuid>`，新导入的会话不再有这个问题。
+
+旧会话可以留着继续用；想清掉的话，**先完全退出 DSH（含托盘）**，再在仓库目录运行：
+
+```sh
+node scripts/purge-legacy-web-sessions.mjs --dry-run   # 先看会删哪些
+node scripts/purge-legacy-web-sessions.mjs             # 实际删除，先备份 workspace.json
+```
+
 ## 发布状态
 
 - 已发布：<https://github.com/hexiangyu0730-web/dsh-web-bridge>（public，默认分支 `main`，`origin`）
 - 已提交上游：
   - **[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**（粘贴/拖放，`+68 −1`）— **已合并**，上游 0.4.6 已包含；
   - **[PR #2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2)**（开关记忆、侧栏入口、列表收起，3 文件 `+263 −16`）— 开放中，CI 通过；
-  - 两者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
+  - **[PR #3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3)**（导入会话使用 `session-<uuid>`，2 文件 `+11 −4`）— 开放中；
+  - 三者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
 - `upstream` 保留指向原作者仓库，用于取上游基线
 - CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
 - 许可证与署名：保留上游 `LICENSE`（PolyForm Noncommercial 1.0.0）与 Required Notice，`package.json` 的 `author` 仍是 SaiSenBox

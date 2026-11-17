@@ -3,7 +3,7 @@
 ## 0.4.5-fork.6
 
 - 修复导入后的会话在「会话管理」里删不掉：`createImportedSession` 之前用 `deepseek-web-<uuid>` 当会话 id，而 DSH 自己的 id 形态是 `session-<uuid>`（`@kissblank/dsh-session-manager` 等工具按这个形状校验，会报 `"…" is not a Session id`）。现在按 DSH 的约定生成 id，导入的会话能像普通会话一样归档、删除；启动时自动 attach 老会话的兜底只保留给历史数据。
-- 升级到本版本后需要**完全退出 DSH（含托盘）**再打开；旧版本留下的 `deepseek-web-*` 会话不受影响，可用 `tools/purge-web-sessions` 清理。
+- 升级到本版本后需要**完全退出 DSH（含托盘）**再打开；旧版本留下的 `deepseek-web-*` 会话不受影响，想删掉它们可在退出 DSH 后运行 `node scripts/purge-legacy-web-sessions.mjs`（先加 `--dry-run` 预览）。
 
 ## 0.4.5-fork.5
 

@@ -1,5 +1,5 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 1db8f31..23c9c83 100644
+index 1db8f31..679cb44 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -1,9 +1,34 @@
@@ -11,7 +11,7 @@ index 1db8f31..23c9c83 100644
 -- 网页对话支持粘贴和拖放附件，保留普通文本粘贴和「+」选文件入口。
 -- 三种附件入口共用上传可用性检查；旧后台先提示重启，不产生失败附件，也不阻塞纯文字发送。只有当前能接收附件时，拖放才高亮输入框。
 +- 修复导入后的会话在「会话管理」里删不掉：`createImportedSession` 之前用 `deepseek-web-<uuid>` 当会话 id，而 DSH 自己的 id 形态是 `session-<uuid>`（`@kissblank/dsh-session-manager` 等工具按这个形状校验，会报 `"…" is not a Session id`）。现在按 DSH 的约定生成 id，导入的会话能像普通会话一样归档、删除；启动时自动 attach 老会话的兜底只保留给历史数据。
-+- 升级到本版本后需要**完全退出 DSH（含托盘）**再打开；旧版本留下的 `deepseek-web-*` 会话不受影响，可用 `tools/purge-web-sessions` 清理。
++- 升级到本版本后需要**完全退出 DSH（含托盘）**再打开；旧版本留下的 `deepseek-web-*` 会话不受影响，想删掉它们可在退出 DSH 后运行 `node scripts/purge-legacy-web-sessions.mjs`（先加 `--dry-run` 预览）。
 +
 +## 0.4.5-fork.5
 +
@@ -42,10 +42,10 @@ index 1db8f31..23c9c83 100644
  
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..37c1abe
+index 0000000..93d9acb
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,118 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5（本仓库的粘贴/拖放改动已由上游 0.4.6 收录）。
@@ -122,13 +122,25 @@ index 0000000..37c1abe
 +dsh plugin --profile desktop remove @xueray/dsh-web-bridge
 +```
 +
++### 从 0.4.5-fork.5 及更早版本升级
++
++更早的版本把导入会话的 id 写成 `deepseek-web-<uuid>`，Host 能打开，但按 `session-*` 校验的工具（如「会话管理」插件的删除路由）会报 `"…" is not a Session id`，删不掉。0.4.5-fork.6 起改为 Host 自己的 `session-<uuid>`，新导入的会话不再有这个问题。
++
++旧会话可以留着继续用；想清掉的话，**先完全退出 DSH（含托盘）**，再在仓库目录运行：
++
++```sh
++node scripts/purge-legacy-web-sessions.mjs --dry-run   # 先看会删哪些
++node scripts/purge-legacy-web-sessions.mjs             # 实际删除，先备份 workspace.json
++```
++
 +## 发布状态
 +
 +- 已发布：<https://github.com/hexiangyu0730-web/dsh-web-bridge>（public，默认分支 `main`，`origin`）
 +- 已提交上游：
 +  - **[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**（粘贴/拖放，`+68 −1`）— **已合并**，上游 0.4.6 已包含；
 +  - **[PR #2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2)**（开关记忆、侧栏入口、列表收起，3 文件 `+263 −16`）— 开放中，CI 通过；
-+  - 两者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
++  - **[PR #3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3)**（导入会话使用 `session-<uuid>`，2 文件 `+11 −4`）— 开放中；
++  - 三者正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)。
 +- `upstream` 保留指向原作者仓库，用于取上游基线
 +- CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
 +- 许可证与署名：保留上游 `LICENSE`（PolyForm Noncommercial 1.0.0）与 Required Notice，`package.json` 的 `author` 仍是 SaiSenBox
@@ -225,18 +237,19 @@ index 57d4c9e..f470ed4 100644
  装好或更新后，**完全退出 DSH，包括托盘进程，再重新打开**。只刷新页面不会更新 Host 接口。
 diff --git a/docs/upstream-pr.md b/docs/upstream-pr.md
 new file mode 100644
-index 0000000..be48c34
+index 0000000..615d2de
 --- /dev/null
 +++ b/docs/upstream-pr.md
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,66 @@
 +# 上游 PR 记录
 +
 +| PR | 标题 | 状态 | 改动 |
 +| --- | --- | --- | --- |
 +| [#1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1) | feat: 网页对话输入框支持粘贴与拖放附件 | **已合并**（上游 0.4.6 已包含） | 1 文件 `lib/client.js`，`+68 −1` |
 +| [#2](https://github.com/SaiSenBox/dsh-web-bridge/pull/2) | feat: 记住思考/联网开关、侧栏入口挪进面板列表、会话列表可收起 | 开放中，CI 通过，`mergeable_state=clean` | 3 文件，`+263 −16` |
++| [#3](https://github.com/SaiSenBox/dsh-web-bridge/pull/3) | fix: 导入会话改用 Host 形状的会话 id | 开放中 | 2 文件，`+11 −4` |
 +
-+两条 PR 都来自 fork `hexiangyu0730-web/dsh-web-bridge-fork`：`#1` 基于上游 `b5531f2`（0.4.5），`#2` 基于 `951cf02`（0.4.6）。
++三条 PR 都来自 fork `hexiangyu0730-web/dsh-web-bridge-fork`（账号已更名为 `LunarYu730`）：`#1` 基于上游 `b5531f2`（0.4.5），`#2`、`#3` 基于 `951cf02`（0.4.6）。
 +
 +## PR #1 正文（原文）
 +
@@ -284,6 +297,15 @@ index 0000000..be48c34
 +- 改动：3 个文件、`+263 −16`，保留上游 0.4.6 的粘贴/拖放修复，不改版本号、不带 fork 文档。
 +- 状态：开放中，CI 通过，`mergeable_state=clean`。
 +- 分支：`hexiangyu0730-web:pr-qol`（网络限制导致本机 `git push` 不通时，分支与提交通过 GitHub API 创建，tree 哈希已校验一致）。
++
++## PR #3
++
++- 链接：<https://github.com/SaiSenBox/dsh-web-bridge/pull/3>
++- 基线：`951cf02`（上游 0.4.6）
++- 内容：`createImportedSession` 之前用 `deepseek-web-<uuid>` 当会话 id；Host 接受，但按 `session-*` 校验的工具（如 `@kissblank/dsh-session-manager` 的删除路由）会报 `"…" is not a Session id`，导入的会话因此在「会话管理」里删不掉。改为与 Host 一致的 `session-<uuid>`，启动时 attach 老会话的兜底只服务历史前缀。
++- 改动：2 个文件、`+11 −4`（`lib/index.js` 两处 id 生成 + 注释，测试断言 id 形状）。
++- 状态：开放中，等待 CI 与维护者审核。
++- 分支：`LunarYu730:pr-session-id`。
 +
 diff --git a/lib/client.js b/lib/client.js
 index 283ab2b..3b39197 100644
